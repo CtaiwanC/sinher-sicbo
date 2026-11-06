@@ -1,6 +1,46 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Player statistics -->
+<style>
+.statsbg{position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:16px}
+.statsbox{background:var(--cab-2);border:2px solid var(--gold);border-radius:14px;padding:16px 18px;width:min(640px,100%);max-height:85vh;display:flex;flex-direction:column;gap:10px}
+.statsbox header{display:flex;justify-content:space-between;align-items:center}
+.statsbox h2{font-family:var(--display);color:var(--gold);margin:0;font-size:1.2rem}
+.statswrap{overflow:auto;min-height:0}
+.statstbl{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+.statstbl th{position:sticky;top:0;background:var(--cab-2);color:var(--muted);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.statstbl th:first-child,.statstbl td:first-child{text-align:left}
+.statstbl td{padding:6px 8px;text-align:right;border-bottom:1px solid rgba(230,187,98,.12);white-space:nowrap;font-family:var(--mono)}
+.statstbl td:first-child{font-family:var(--body)}
+.statstbl .pos{color:#69f0ae}.statstbl .neg{color:#ff6b6b}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  const btn=document.createElement("button");btn.className="linkbtn";btn.id="statsbtn";btn.textContent="玩家統計";
+  $("rename").before(btn,document.createTextNode(" · "));
+  const bg=document.createElement("div");bg.className="statsbg";bg.id="statsbg";bg.hidden=true;
+  bg.innerHTML='<div class="statsbox" role="dialog" aria-label="玩家統計"><header><h2>玩家統計</h2><button class="btn" id="statsclose">關閉</button></header><div class="statswrap"><table class="statstbl"><thead><tr><th>暱稱</th><th>下注局數</th><th>整體輸贏</th><th>上線時間</th><th>重新領取</th><th>目前籌碼</th></tr></thead><tbody id="statsbody"><tr><td colspan="6">載入中…</td></tr></tbody></table></div><p class="note" style="margin:0">整體輸贏只計算下注的輸贏，不含重新領取的籌碼。</p></div>';
+  document.body.append(bg);
+  const dur=ms=>{const m=Math.floor(ms/60000),h=Math.floor(m/60);return h?`${h} 小時 ${m%60} 分`:`${m} 分`};
+  const col=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"#ffffff";
+  const render=list=>{const tb=$("statsbody");tb.innerHTML="";
+    if(!list.length){tb.innerHTML='<tr><td colspan="6">還沒有玩家資料。</td></tr>';return}
+    for(const p of list){const tr=document.createElement("tr");const name=document.createElement("td");
+      const dot=document.createElement("i");dot.className="cdot";dot.style.background=col(p.color);if(!p.online)dot.style.opacity=.35;
+      name.append(dot,document.createTextNode(p.name));tr.append(name);
+      const cells=[fmt(p.rounds),(p.net>0?"+":"")+fmt(p.net),dur(p.onlineMs),fmt(p.refills)+" 次",fmt(p.balance)];
+      cells.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===1)td.className=p.net>0?"pos":p.net<0?"neg":"";tr.append(td)});
+      tb.append(tr)}};
+  let timer=null;
+  const open=()=>{bg.hidden=false;sendMsg({type:"stats"});clearInterval(timer);timer=setInterval(()=>{if(!bg.hidden)sendMsg({type:"stats"})},5000)};
+  const close=()=>{bg.hidden=true;clearInterval(timer)};
+  btn.onclick=open;$("statsclose").onclick=close;bg.addEventListener("click",e=>{if(e.target===bg)close()});
+  addEventListener("keydown",e=>{if(e.key==="Escape"&&!bg.hidden)close()});
+  const hook=w=>{if(!w||w.__stats)return;w.__stats=1;w.addEventListener("message",ev=>{const m=JSON.parse(ev.data);if(m.type==="stats")render(m.list)})};
+  hook(ws);const base=connect;window.connect=function(){base();hook(ws)};
+});
+</script>
 <!-- Smaller chips + ALL IN -->
 <style>
 html:root .chips{gap:6px}
