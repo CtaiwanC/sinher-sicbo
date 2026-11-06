@@ -3,7 +3,7 @@ const http = require("http"), fs = require("fs"), path = require("path"), crypto
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const ROUND = 30000, BET_MS = 22000, START = 10000, HIST = 16, CHIPS = [10, 100, 500, 1000], MAX_BET = 100000;
+const ROUND = 30000, BET_MS = 22000, START = 10000, HIST = 16, CHIPS = [10, 100, 500, 1000, 5000, 10000], MAX_BET = 100000;
 const DATA = path.join(__dirname, "data.json");
 const COLORS = ["#ff5252","#40c4ff","#69f0ae","#ffd740","#e040fb","#ff9100","#18ffff","#b2ff59","#ff80ab","#7c4dff","#ffab40","#64ffda"];
 function pickColor() { // 選目前在線玩家最少用的顏色
