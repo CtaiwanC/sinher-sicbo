@@ -1,6 +1,23 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Winning cells turn yellow; only the ones someone bet on flash -->
+<style>
+.cell.win{animation:blink .6s infinite}
+.cell.win.nobet{animation:none}
+@media (prefers-reduced-motion:reduce){.cell.win{animation:none}}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  window.finishRoll=function(d,hist,animate){
+    showResult(d);S.hist=hist;renderHist();
+    const bet=new Set();for(const p of players)for(const k of Object.keys(p.bets||{}))bet.add(k);
+    if(joined&&me.round===S.round)for(const k of Object.keys(me.bets||{}))bet.add(k);
+    BETS.forEach(b=>{if(payout(b.k,1,d)){const el=$("b-"+b.k);el.classList.add("win");el.classList.toggle("nobet",!bet.has(b.k))}});
+    if(animate&&d[0]===d[1]&&d[1]===d[2]&&!document.hidden)playDragon();
+  };
+});
+</script>
 <!-- Chat room -->
 <style>
 .chat{display:flex;flex-direction:column;gap:6px;min-height:0;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
