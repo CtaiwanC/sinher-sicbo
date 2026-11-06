@@ -1,6 +1,30 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Smaller chips + ALL IN -->
+<style>
+html:root .chips{gap:6px}
+html:root .chips .chip{width:38px;height:38px;border-width:2px;font-size:.66rem}
+html:root .chips .chip[data-v="10000"]{font-size:.58rem}
+html:root .chips .chip[data-v="all"]{width:auto;min-width:52px;padding:0 8px;border-radius:19px;background:linear-gradient(135deg,#ff2b3e,#ffb12b);color:#fff;font-size:.62rem;font-weight:700;letter-spacing:.02em}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  const box=document.querySelector(".chips");
+  const b=document.createElement("button");b.className="chip";b.dataset.v="all";b.id="call";b.textContent="ALL IN";b.title="押上全部剩餘籌碼";box.append(b);
+  setTimeout(()=>{box.append(b);const all=document.querySelectorAll(".chip"); // 等其他籌碼按鈕建立好再統一綁定
+    all.forEach(c=>c.onclick=()=>{chip=c.dataset.v==="all"?"all":+c.dataset.v;all.forEach(x=>x.setAttribute("aria-pressed",x===c))})},0);
+  $("cloth").addEventListener("click",e=>{
+    if(chip!=="all")return;
+    e.stopImmediatePropagation();
+    const el=e.target.closest(".cell");if(!el||el.disabled)return;
+    if(!joined)return openJoin();
+    if(phaseT()>=BET_MS)return toast("已停止下注");
+    if(me.balance<=0)return toast("籌碼不足");
+    sendMsg({type:"bet",k:el.dataset.k,amt:"all"});
+  },true);
+});
+</script>
 <!-- Winning cells turn yellow; only the ones someone bet on flash -->
 <style>
 .cell.win{animation:blink .6s infinite}
