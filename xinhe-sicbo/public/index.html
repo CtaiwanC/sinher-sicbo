@@ -142,6 +142,11 @@ h1{font-family:var(--display);font-weight:900;font-size:1.8rem;margin:0;color:va
 .joinbox{background:var(--cab-2);border:2px solid var(--neon);border-radius:14px;padding:20px;display:grid;gap:10px;width:min(320px,100%);box-shadow:0 0 24px rgba(255,43,62,.5)}
 .joinbox h2{font-family:var(--display);color:var(--gold);margin:0}
 .joinbox input{font:inherit;font-size:1.1rem;padding:10px;border-radius:8px;border:1px solid var(--line);background:#000;color:var(--ivory)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tab{background:transparent;border:0;color:var(--muted);font:inherit;padding:8px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--neon);color:#fff;font-weight:600}
+.joinbox label{font-size:.85rem;color:var(--muted);margin-bottom:-6px}
+.autherr{color:#ff8a8a;min-height:1.2em;margin:0;font-size:.85rem}
 .linkbtn{background:none;border:0;color:var(--gold);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
 #dragon{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
 .badge{cursor:pointer}
@@ -210,11 +215,20 @@ li .v{font-family:var(--mono);font-variant-numeric:tabular-nums}
 </style></head><body>
 
 <canvas id="dragon" hidden></canvas>
-<div class="joinbg" id="join" hidden><form class="joinbox" id="joinform"><h2>入座鑫禾骰寶</h2><label for="nick">你的暱稱</label><input id="nick" maxlength="12" autocomplete="nickname" required placeholder="例如：阿禾"><button class="btn" type="submit">入座</button><p class="note">不需要帳號。同一台裝置再次打開會保留你的籌碼。</p></form></div>
+<div class="joinbg" id="join" hidden><form class="joinbox" id="joinform" novalidate>
+<h2>鑫禾骰寶</h2>
+<div class="tabs" role="tablist"><button type="button" class="tab" id="tab-login" aria-selected="true">已有帳號</button><button type="button" class="tab" id="tab-reg" aria-selected="false">創新帳號</button></div>
+<label for="nick">暱稱</label><input id="nick" maxlength="12" autocomplete="username" placeholder="例如：阿禾">
+<label for="pw">密碼</label><input id="pw" type="password" maxlength="64" autocomplete="current-password" placeholder="至少 4 個字元">
+<div id="pw2wrap" hidden><label for="pw2">再輸入一次密碼</label><input id="pw2" type="password" maxlength="64" autocomplete="new-password"></div>
+<p class="autherr" id="autherr" role="alert"></p>
+<button class="btn" type="submit" id="authbtn">登入</button>
+<p class="note" id="authnote">用暱稱和密碼登入，籌碼會接續上次的餘額。</p>
+</form></div>
 <div class="wrap">
   <header>
     <h1>鑫禾骰寶</h1>
-    <span class="sub"><span id="online">連線中…</span> · <button class="linkbtn" id="rename">改暱稱</button></span>
+    <span class="sub"><span id="online">連線中…</span> · <span id="whoami"></span> <button class="linkbtn" id="rename">登出</button></span>
   </header>
 
   <section class="status" aria-live="polite">
@@ -386,18 +400,28 @@ function renderBoard(){
     v.textContent=fmt(p.balance)+(p.staked?` ｜押 ${fmt(p.staked)}`:"");li.append(a,v);$("board").append(li)}
 }
 
-// Join dialog
-function store(k,v){try{v===undefined?null:localStorage.setItem(k,v)}catch{}}
+// Login / register dialog
+function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch{}}
 function load(k){try{return localStorage.getItem(k)}catch{return null}}
-function openJoin(){$("join").hidden=false;$("nick").value=load("sicbo-name")||"";$("nick").focus()}
-$("joinform").addEventListener("submit",e=>{e.preventDefault();const n=$("nick").value.trim();if(!n)return;
-  store("sicbo-name",n);$("join").hidden=true;sendMsg({type:"join",name:n,token:load("sicbo-token")})});
+let authMode="login";
+function setMode(m){authMode=m;$("tab-login").setAttribute("aria-selected",m==="login");$("tab-reg").setAttribute("aria-selected",m==="register");
+  $("pw2wrap").hidden=m!=="register";$("authbtn").textContent=m==="login"?"登入":"建立帳號並入座";
+  $("pw").autocomplete=m==="login"?"current-password":"new-password";
+  $("authnote").textContent=m==="login"?"用暱稱和密碼登入，籌碼會接續上次的餘額。":"新帳號送 10,000 籌碼。暱稱不能和別人重複，請記住你的密碼。";$("autherr").textContent=""}
+$("tab-login").onclick=()=>setMode("login");$("tab-reg").onclick=()=>setMode("register");
+function openJoin(msg){$("join").hidden=false;if(!$("nick").value)$("nick").value=load("sicbo-name")||"";$("autherr").textContent=msg||"";($("nick").value?$("pw"):$("nick")).focus()}
+$("joinform").addEventListener("submit",e=>{e.preventDefault();const n=$("nick").value.trim(),pw=$("pw").value;
+  if(!n)return $("autherr").textContent="請輸入暱稱";
+  if(pw.length<4)return $("autherr").textContent="密碼至少 4 個字元";
+  if(authMode==="register"&&pw!==$("pw2").value)return $("autherr").textContent="兩次輸入的密碼不一樣";
+  $("authbtn").disabled=true;store("sicbo-name",n);sendMsg({type:authMode,name:n,password:pw})});
+$("rename").onclick=()=>{sendMsg({type:"logout"});store("sicbo-token",null);joined=false;me={balance:0,bets:{},round:-1,name:""};$("whoami").textContent="";$("pw").value="";renderMe();setMode("login");openJoin()};
 
 // Connection
 function connect(){
   $("online").textContent="連線中…";
   ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
-  ws.onopen=()=>{const n=load("sicbo-name");if(n)sendMsg({type:"join",name:n,token:load("sicbo-token")});else openJoin()};
+  ws.onopen=()=>{const t=load("sicbo-token");if(t)sendMsg({type:"resume",token:t});else openJoin()};
   ws.onclose=()=>{joined=false;$("online").textContent="連線中斷，重新連線中…";setTimeout(connect,2000)};
   ws.onmessage=ev=>{const m=JSON.parse(ev.data);
     if(m.type==="state"){
@@ -410,14 +434,16 @@ function connect(){
     }else if(m.type==="roll"){
       const late=phaseT()-BET_MS;$("result").textContent="開骰中…";
       if(late<1500){roll(m.dice,2600);setTimeout(()=>finishRoll(m.dice,m.hist,true),2600)}else{place(m.dice);finishRoll(m.dice,m.hist,false)}
-    }else if(m.type==="joined"){store("sicbo-token",m.token);joined=true;
+    }else if(m.type==="auth"){$("authbtn").disabled=false;
+      if(m.ok){store("sicbo-token",m.token);store("sicbo-name",m.name);joined=true;$("join").hidden=true;$("pw").value="";$("pw2").value="";$("whoami").textContent=m.name;toast("歡迎，"+m.name)}
+      else{joined=false;store("sicbo-token",null);openJoin(m.text)}
+    }else if(m.type==="kicked"){joined=false;store("sicbo-token",null);openJoin("你的帳號在其他地方登入了")
     }else if(m.type==="me"){me=m;joined=true;renderMe();
     }else if(m.type==="settle"){me.balance=m.balance;renderMe();toast(m.net>=0?`本局贏 ${fmt(m.net)}！`:`本局輸 ${fmt(-m.net)}`);
     }else if(m.type==="players"){players=m.list;$("online").textContent=`${m.online} 人在桌上`;renderBoard();
     }else if(m.type==="error"||m.type==="info"){toast(m.text)}
   };
 }
-
 
 // ---- Triple: dragon bursts out of the screen ----
 function playDragon(){
@@ -496,7 +522,6 @@ function playDragon(){
 $("badge").onclick=playDragon;
 
 tick(); renderHist(); setInterval(tick,250); connect();
-$("rename").onclick=openJoin;
 
 </script>
 </body></html>
