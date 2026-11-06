@@ -1,6 +1,26 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- History: 大/小/圍 in one column, plus 單/雙 column -->
+<style>
+.hr{grid-template-columns:3.6em 1.8em 1.8em 2em!important}
+.hk-odd{color:#ff9d3d}.hk-even{color:#4fd1ff}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  window.renderHist=function(){const N=Math.max(1,S.hist.length),rows=S.hist.map(h=>h.dice);
+    if(!rows.length){$("hist").innerHTML='<p class="note" style="color:#aaa;margin:0">開出第一局後會顯示在這裡。</p>';return}
+    const cnt=[0,0,0,0,0,0,0],kind={big:0,small:0,tri:0,odd:0,even:0};
+    const pct=x=>(x*100).toFixed(2).padStart(5,"0")+"%";
+    const list=rows.map(d=>{d.forEach(v=>cnt[v]++);const s=d[0]+d[1]+d[2],tri=d[0]===d[1]&&d[1]===d[2],k=tri?"tri":s>=11?"big":"small",oe=tri?"":s%2?"odd":"even";kind[k]++;if(oe)kind[oe]++;
+      return`<div class="hr ${k}"><span class="hd3">${d.join(" ")}</span><span class="hk hk-${k}">${tri?'<i class="tri-box" style="font-style:normal">圍</i>':k==="big"?"大":"小"}</span><span class="hk hk-${oe}">${oe==="odd"?"單":oe==="even"?"雙":""}</span><span class="hs">${s}</span></div>`}).join("");
+    const faces=[1,2,3,4,5,6].map(v=>`<div class="st"><i class="hdie">${Array.from({length:9},(_,i)=>PIPS[v].includes(i)?"<span></span>":"<b></b>").join("")}</i><span>${pct(cnt[v]/(N*3))}</span></div>`).join("");
+    const row=(c,t,x)=>`<div class="st"><span class="${c}">${t}</span><span>${pct(x/N)}</span></div>`;
+    const kinds=row("hk-big","大",kind.big)+row("hk-small","小",kind.small)+row("hk-tri tri-box","圍",kind.tri)+row("hk-odd","單",kind.odd)+row("hk-even","雙",kind.even);
+    $("hist").innerHTML=`<div class="hlist">${list}</div><div class="hstat">${faces+kinds}</div>`};
+  renderHist();
+});
+</script>
 <!-- Chip labels fit inside the chip -->
 <style>
 .chips .chip{padding:0;font-size:.78rem;line-height:1;white-space:nowrap;overflow:hidden;display:grid;place-items:center;letter-spacing:-.02em}
