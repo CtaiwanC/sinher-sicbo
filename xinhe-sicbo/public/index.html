@@ -1,6 +1,42 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Chat room -->
+<style>
+.chat{display:flex;flex-direction:column;gap:6px;min-height:0;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.chat h2{margin:0!important}
+.chatlog{flex:1;min-height:90px;max-height:220px;overflow-y:auto;display:grid;align-content:start;gap:3px;font-size:.85rem;padding-right:4px}
+.chatlog p{margin:0;word-break:break-word;line-height:1.35}
+.chatlog b{font-weight:600}
+.chatlog time{color:var(--muted);font-size:.7rem;margin-left:4px}
+.chatform{display:flex;gap:6px}
+.chatform input{flex:1;min-width:0;font:inherit;font-size:.85rem;padding:6px 8px;border-radius:6px;border:1px solid var(--line);background:#000;color:var(--ivory)}
+.chatform button{padding:6px 10px}
+@media (min-width:1000px) and (min-height:540px){
+  html:root #board{flex:none;max-height:35%}
+  html:root .chat{flex:1}
+  html:root .chatlog{max-height:none;min-height:0}
+  html:root .lower .panel:first-child{overflow:hidden}
+}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  const panel=$("board").closest(".panel");
+  const box=document.createElement("div");box.className="chat";
+  box.innerHTML='<h2>聊天室</h2><div class="chatlog" id="chatlog" aria-live="polite"></div><form class="chatform" id="chatform"><input id="chatinput" maxlength="200" placeholder="輸入訊息，按 Enter 送出" autocomplete="off"><button class="btn" type="submit">送出</button></form>';
+  panel.append(box);
+  const col=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"#ffffff";
+  const add=m=>{const log=$("chatlog"),near=log.scrollHeight-log.scrollTop-log.clientHeight<40;
+    const p=document.createElement("p"),b=document.createElement("b"),t=document.createElement("time");
+    b.textContent=m.name+"：";b.style.color=col(m.color);t.textContent=new Date(m.ts).toLocaleTimeString("zh-TW",{hour:"2-digit",minute:"2-digit"});
+    p.append(b,document.createTextNode(m.text),t);log.append(p);while(log.children.length>50)log.firstChild.remove();if(near)log.scrollTop=log.scrollHeight};
+  $("chatform").addEventListener("submit",e=>{e.preventDefault();const v=$("chatinput").value.trim();if(!v)return;
+    if(!joined)return openJoin("請先登入才能聊天");sendMsg({type:"chat",text:v});$("chatinput").value=""});
+  const hook=w=>{if(!w||w.__chat)return;w.__chat=1;w.addEventListener("message",ev=>{const m=JSON.parse(ev.data);
+    if(m.type==="chatlog"){$("chatlog").innerHTML="";m.list.forEach(add);$("chatlog").scrollTop=1e9}else if(m.type==="chat")add(m)})};
+  hook(ws);const baseConnect=connect;window.connect=function(){baseConnect();hook(ws)};
+});
+</script>
 <!-- History: 大/小/圍 in one column, plus 單/雙 column -->
 <style>
 .hr{grid-template-columns:3.6em 1.8em 1.8em 2em!important}
