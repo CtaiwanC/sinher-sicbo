@@ -1,6 +1,45 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- Player colours: every player's bets shown on the board -->
+<style>
+.pchips{position:absolute;top:-8px;right:-5px;display:flex;flex-direction:row-reverse;z-index:3;pointer-events:none}
+.pchip{min-width:22px;height:18px;border-radius:9px;border:2px dashed rgba(255,255,255,.9);font:700 .6rem/14px "JetBrains Mono",monospace;color:#111;padding:0 4px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.6);font-style:normal}
+.pchip+.pchip{margin-right:-7px}
+.pchip.more{background:#222;color:#fff}
+.cdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.6)}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  if(!S.hist.length)place([1,2,3]);
+  const short=v=>v>=1000?(v/1000).toFixed(v%1000?1:0)+"K":String(v);
+  const col=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"#ffffff";
+  window.renderChips=function(){
+    const map={};
+    const add=(p,bets,isMe)=>{for(const[k,a]of Object.entries(bets||{}))(map[k]=map[k]||[]).push({color:col(p.color),amt:a,name:p.name,me:isMe})};
+    for(const p of players)if(p.id!==me.id)add(p,p.bets,false);
+    if(joined&&me.round===S.round)add(me,me.bets,true);
+    for(const b of BETS){const el=$("b-"+b.k);el.querySelector(".chipon")?.remove();let box=el.querySelector(".pchips");
+      const list=(map[b.k]||[]).sort((x,y)=>y.me-x.me);
+      if(!list.length){box?.remove();el.removeAttribute("title");continue}
+      if(!box){box=document.createElement("span");box.className="pchips";el.append(box)}
+      box.innerHTML=list.slice(0,3).map(c=>`<i class="pchip" style="background:${c.color}">${short(c.amt)}</i>`).join("")+(list.length>3?`<i class="pchip more">+${list.length-3}</i>`:"");
+      el.title=list.map(c=>c.name+"："+c.amt).join("\n")}
+  };
+  const baseMe=renderMe;
+  window.renderMe=function(){baseMe();renderChips()};
+  window.renderBoard=function(){
+    if(!players.length){$("board").innerHTML='<li class="note">還沒有人入座。</li>';renderChips();return}
+    $("board").innerHTML="";
+    for(const p of players){const li=document.createElement("li");const a=document.createElement("span");
+      const dot=document.createElement("i");dot.className="cdot";dot.style.background=col(p.color);if(!p.online)dot.style.opacity=.35;
+      a.append(dot,document.createTextNode(p.name+(p.id===me.id?"（你）":"")));a.style.color=p.online?"":"var(--muted)";
+      const v=document.createElement("span");v.className="v";
+      v.textContent=fmt(p.balance)+(p.staked?` ｜押 ${fmt(p.staked)}`:"");li.append(a,v);$("board").append(li)}
+    renderChips();
+  };
+});
+</script>
 <style>
 /* Desktop: everything on one screen, three columns */
 @media (min-width:1000px) and (min-height:540px){
