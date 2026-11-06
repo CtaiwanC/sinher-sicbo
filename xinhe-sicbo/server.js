@@ -101,7 +101,7 @@ function pickColor() {
 function playersMsg() {
   const online = new Set([...wss.clients].map(c => c.player && c.player.id).filter(Boolean));
   const list = [...accounts.values()]
-    .filter(p => online.has(p.id) || Date.now() - (p.lastSeen || 0) < 864e5)
+    .filter(p => online.has(p.id))
     .map(p => ({ id: p.id, name: p.name, color: p.color, balance: p.balance, staked: staked(p), bets: p.round === round ? p.bets : {}, online: online.has(p.id) }))
     .sort((a, b) => (b.online - a.online) || (b.balance - a.balance)).slice(0, 20);
   return { type: "players", list, online: online.size };
