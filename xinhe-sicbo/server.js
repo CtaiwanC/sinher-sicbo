@@ -179,11 +179,17 @@ wss.on("connection", ws => {
     const betting = !revealed && Date.now() < start + BET_MS;
     if (m.type === "bet") {
       if (!betting) return err("已停止下注");
-      if (!KEYS.has(m.k) || !CHIPS.includes(m.amt)) return err("無效的下注");
+      if (!KEYS.has(m.k)) return err("無效的下注");
       if (p.round !== round) { p.round = round; p.bets = {}; }
-      if (p.balance < m.amt) return err("籌碼不足");
-      if (staked(p) + m.amt > MAX_BET) return err("每局最多下注 100,000");
-      p.balance -= m.amt; p.bets[m.k] = (p.bets[m.k] || 0) + m.amt; touch(p);
+      let amt = m.amt;
+      if (amt === "all") { // ALL IN：押上全部餘額（不超過每局上限）
+        amt = Math.min(p.balance, MAX_BET - staked(p));
+        if (p.balance <= 0) return err("籌碼不足");
+        if (amt <= 0) return err("每局最多下注 100,000");
+      } else if (!CHIPS.includes(amt)) return err("無效的下注");
+      if (p.balance < amt) return err("籌碼不足");
+      if (staked(p) + amt > MAX_BET) return err("每局最多下注 100,000");
+      p.balance -= amt; p.bets[m.k] = (p.bets[m.k] || 0) + amt; touch(p);
       send(ws, meMsg(p)); pushPlayers();
     } else if (m.type === "clear") {
       if (!betting || p.round !== round) return;
