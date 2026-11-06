@@ -140,11 +140,12 @@ function signIn(ws, a) {
   a.lastSeen = Date.now(); touch(a); ws.player = a;
   send(ws, { type: "auth", ok: true, token: a.token, name: a.name }); send(ws, meMsg(a)); pushPlayers();
 }
+const chatLog = []; // 最近 50 則聊天訊息（只存在記憶體）
 const fails = new Map(); // 防止暴力猜密碼：每個連線 5 次錯誤後暫停 30 秒
 
 wss.on("connection", ws => {
   ws.isAlive = true; ws.on("pong", () => ws.isAlive = true);
-  send(ws, stateMsg()); send(ws, playersMsg());
+  send(ws, stateMsg()); send(ws, playersMsg()); send(ws, { type: "chatlog", list: chatLog });
   ws.on("message", raw => {
     let m; try { m = JSON.parse(raw); } catch { return; }
     const err = t => send(ws, { type: "error", text: t });
@@ -187,6 +188,14 @@ wss.on("connection", ws => {
     } else if (m.type === "clear") {
       if (!betting || p.round !== round) return;
       p.balance += staked(p); p.bets = {}; touch(p); send(ws, meMsg(p)); pushPlayers();
+    } else if (m.type === "chat") {
+      const text = String(m.text || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200);
+      if (!text) return;
+      if (Date.now() - (p.lastChat || 0) < 1000) return err("訊息發太快了，請稍等一下");
+      p.lastChat = Date.now();
+      const msg = { name: p.name, color: p.color, text, ts: Date.now() };
+      chatLog.push(msg); if (chatLog.length > 50) chatLog.shift();
+      broadcast({ type: "chat", ...msg });
     } else if (m.type === "refill") {
       if (p.balance >= 10 || staked(p)) return err("籌碼用完才能補充");
       p.balance = START; touch(p); send(ws, meMsg(p)); send(ws, { type: "info", text: "已補滿 10,000 籌碼" }); pushPlayers();
