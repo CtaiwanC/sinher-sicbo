@@ -5,6 +5,11 @@ const { WebSocketServer } = require("ws");
 const PORT = process.env.PORT || 3000;
 const ROUND = 30000, BET_MS = 22000, START = 10000, HIST = 16, CHIPS = [10, 100, 500, 1000], MAX_BET = 100000;
 const DATA = path.join(__dirname, "data.json");
+const COLORS = ["#ff5252","#40c4ff","#69f0ae","#ffd740","#e040fb","#ff9100","#18ffff","#b2ff59","#ff80ab","#7c4dff","#ffab40","#64ffda"];
+function pickColor() { // 選目前在線玩家最少用的顏色
+  const used = {}; for (const c of wss.clients) if (c.player) used[c.player.color] = (used[c.player.color] || 0) + 1;
+  return COLORS.slice().sort((a, b) => (used[a] || 0) - (used[b] || 0))[0];
+}
 const TOTAL_ODDS = {4:50,5:18,6:14,7:12,8:8,9:6,10:6,11:6,12:6,13:8,14:12,15:14,16:18,17:50};
 
 // 合法下注項目
@@ -58,13 +63,13 @@ const wss = new WebSocketServer({ server });
 const send = (ws, m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); };
 const broadcast = m => { const s = JSON.stringify(m); for (const c of wss.clients) if (c.readyState === 1) c.send(s); };
 const staked = p => p.round === round ? Object.values(p.bets).reduce((a, b) => a + b, 0) : 0;
-const meMsg = p => ({ type: "me", id: p.id, name: p.name, balance: p.balance, bets: p.round === round ? p.bets : {}, round });
+const meMsg = p => ({ type: "me", id: p.id, name: p.name, color: p.color, balance: p.balance, bets: p.round === round ? p.bets : {}, round });
 
 function playersMsg() {
   const online = new Set([...wss.clients].map(c => c.player && c.player.id).filter(Boolean));
   const list = [...players.values()]
     .filter(p => online.has(p.id) || Date.now() - p.lastSeen < 864e5)
-    .map(p => ({ id: p.id, name: p.name, balance: p.balance, staked: staked(p), online: online.has(p.id) }))
+    .map(p => ({ id: p.id, name: p.name, color: p.color, balance: p.balance, staked: staked(p), bets: p.round === round ? p.bets : {}, online: online.has(p.id) }))
     .sort((a, b) => (b.online - a.online) || (b.balance - a.balance)).slice(0, 20);
   return { type: "players", list, online: online.size };
 }
@@ -118,7 +123,10 @@ wss.on("connection", ws => {
         p = { id: crypto.randomBytes(6).toString("hex"), name, balance: START, bets: {}, round: 0, lastSeen: Date.now() };
         players.set(token, p);
       }
-      p.name = name; p.lastSeen = Date.now(); ws.player = p;
+      p.name = name; p.lastSeen = Date.now();
+      const taken = [...wss.clients].some(c => c.player && c.player !== p && c.player.color === p.color);
+      if (!p.color || taken) p.color = pickColor();
+      ws.player = p;
       send(ws, { type: "joined", token }); send(ws, meMsg(p)); pushPlayers();
       return;
     }
