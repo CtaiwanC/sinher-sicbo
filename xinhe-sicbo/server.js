@@ -55,14 +55,14 @@ async function loadStore() {
   for (const a of rows) {
     // 伺服器中斷時尚未開骰的下注全數退還
     for (const v of Object.values(a.bets || {})) a.balance += v;
-    a.bets = {}; a.round = 0;
+    a.bets = {}; a.round = 0; a.sessionStart = null;
     accounts.set(keyOf(a.name), a);
   }
 }
 async function flush() {
   if (!dirty.size && !flush.hist) return;
   const list = [...dirty].map(k => accounts.get(k)).filter(Boolean); dirty.clear();
-  const pub = a => ({ id: a.id, name: a.name, salt: a.salt, hash: a.hash, balance: a.balance, color: a.color, token: a.token, bets: a.round === round && a.settled !== round ? a.bets : {}, lastSeen: a.lastSeen });
+  const pub = a => ({ id: a.id, name: a.name, salt: a.salt, hash: a.hash, balance: a.balance, color: a.color, token: a.token, rounds: a.rounds || 0, net: a.net || 0, onlineMs: a.onlineMs || 0, refills: a.refills || 0, bets: a.round === round && a.settled !== round ? a.bets : {}, lastSeen: a.lastSeen });
   try {
     if (pool) {
       for (const a of list) await pool.query("INSERT INTO sicbo_accounts (k,data) VALUES ($1,$2) ON CONFLICT (k) DO UPDATE SET data=EXCLUDED.data", [keyOf(a.name), pub(a)]);
@@ -125,7 +125,8 @@ function reveal() {
     if (p.round !== round || !Object.keys(p.bets).length) continue;
     let back = 0, st = 0;
     for (const [k, a] of Object.entries(p.bets)) { st += a; back += payout(k, a, dice); }
-    p.balance += back; p.lastNet = back - st; p.settled = round; touch(p);
+    p.balance += back; p.lastNet = back - st; p.settled = round;
+    p.rounds = (p.rounds || 0) + 1; p.net = (p.net || 0) + back - st; touch(p);
   }
   setTimeout(() => {
     for (const c of wss.clients) { const p = c.player; if (p && p.settled === round) send(c, { type: "settle", round, net: p.lastNet, balance: p.balance }); }
@@ -133,8 +134,21 @@ function reveal() {
   }, 2700);
 }
 
+// 上線時間：登入時開始計時，離線、登出或被擠下線時累加
+function endSession(a) { if (a && a.sessionStart) { a.onlineMs = (a.onlineMs || 0) + Date.now() - a.sessionStart; a.sessionStart = null; touch(a); } }
+const stillOnline = (a, except) => [...wss.clients].some(c => c !== except && c.player === a);
+setInterval(() => { for (const a of accounts.values()) if (a.sessionStart) { endSession(a); a.sessionStart = Date.now(); } }, 60000);
+function statsMsg() {
+  const online = new Set([...wss.clients].map(c => c.player && c.player.id).filter(Boolean));
+  const list = [...accounts.values()].map(a => ({ name: a.name, color: a.color, rounds: a.rounds || 0, net: a.net || 0,
+    onlineMs: (a.onlineMs || 0) + (a.sessionStart ? Date.now() - a.sessionStart : 0), refills: a.refills || 0, balance: a.balance, online: online.has(a.id) }))
+    .sort((x, y) => y.net - x.net);
+  return { type: "stats", list };
+}
+
 function signIn(ws, a) {
   for (const c of wss.clients) if (c !== ws && c.player === a) { send(c, { type: "kicked" }); c.player = null; }
+  if (!a.sessionStart) a.sessionStart = Date.now();
   const taken = [...wss.clients].some(c => c.player && c.player !== a && c.player.color === a.color);
   if (!a.color || taken) a.color = pickColor();
   a.lastSeen = Date.now(); touch(a); ws.player = a;
@@ -173,7 +187,8 @@ wss.on("connection", ws => {
       const a = typeof m.token === "string" && m.token.length > 20 && [...accounts.values()].find(x => x.token === m.token);
       return a ? signIn(ws, a) : authErr("");
     }
-    if (m.type === "logout") { if (ws.player) { ws.player = null; pushPlayers(); } return; }
+    if (m.type === "logout") { if (ws.player) { const a = ws.player; ws.player = null; if (!stillOnline(a)) endSession(a); pushPlayers(); } return; }
+    if (m.type === "stats") return send(ws, statsMsg());
     const p = ws.player; if (!p) return send(ws, { type: "auth", ok: false, text: "請先登入" });
     p.lastSeen = Date.now();
     const betting = !revealed && Date.now() < start + BET_MS;
@@ -204,14 +219,14 @@ wss.on("connection", ws => {
       broadcast({ type: "chat", ...msg });
     } else if (m.type === "refill") {
       if (p.balance >= 10 || staked(p)) return err("籌碼用完才能補充");
-      p.balance = START; touch(p); send(ws, meMsg(p)); send(ws, { type: "info", text: "已補滿 10,000 籌碼" }); pushPlayers();
+      p.balance = START; p.refills = (p.refills || 0) + 1; touch(p); send(ws, meMsg(p)); send(ws, { type: "info", text: "已補滿 10,000 籌碼" }); pushPlayers();
     }
   });
-  ws.on("close", () => { fails.delete(ws); pushPlayers(); });
+  ws.on("close", () => { fails.delete(ws); if (ws.player && !stillOnline(ws.player, ws)) endSession(ws.player); pushPlayers(); });
 });
 setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 25000);
 
-process.on("SIGTERM", async () => { await flush(); process.exit(0); });
+process.on("SIGTERM", async () => { for (const a of accounts.values()) endSession(a); await flush(); process.exit(0); });
 loadStore().then(() => {
   setInterval(() => {
     const now = Date.now();
