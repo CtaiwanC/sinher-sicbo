@@ -2,6 +2,40 @@
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
 <style>
+/* Desktop: everything on one screen, three columns */
+@media (min-width:1000px) and (min-height:540px){
+  html,body{height:100%;overflow:hidden}
+  html body{padding-block:10px}
+  :root .wrap{max-width:1500px;height:100%;gap:8px 18px;
+    grid-template-columns:minmax(230px,290px) minmax(0,1fr) auto;
+    grid-template-rows:auto auto auto auto minmax(0,1fr);
+    grid-template-areas:"hd hd hd" "st cl hi" "ma cl hi" "ma co hi" "re pl hi"}
+  :root header{grid-area:hd}
+  :root h1{font-size:1.5rem}
+  :root .status{grid-area:st;padding:8px 12px}
+  :root .timer{font-size:1.4rem}
+  :root .stage,:root .lower{display:contents}
+  :root .machine{grid-area:ma;width:100%;align-self:start}
+  :root .canopy{height:60px}
+  :root .hpanel{grid-area:hi;min-height:0;overflow:auto;align-self:start}
+  :root .result{grid-area:re;align-self:start}
+  :root .cloth{grid-area:cl;align-self:start;padding:8px;gap:5px}
+  :root .controls{grid-area:co}
+  :root .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;background:rgba(0,0,0,.8);border-radius:8px;padding:0 14px;font-size:1.1rem}
+  :root .toast:empty{display:none}
+  :root .lower .panel:first-child{grid-area:pl;padding:8px 12px;min-width:0;min-height:0;display:flex;flex-direction:column}
+  :root .lower .panel:last-child{display:none}
+  :root #board{overflow:auto;min-height:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 24px}
+  :root .cell{padding:4px 2px;gap:2px}
+  :root .cell .nm{font-size:1.05rem}
+  :root .ra .nm{font-size:1.35rem}
+  :root .md{width:13px;height:13px}
+  :root .chip{width:44px;height:44px}
+  :root .hr{font-size:.8rem;line-height:1.2}
+  :root .st{font-size:.8rem}
+  :root .hdie{width:22px;height:22px;padding:3px}
+  :root .hist{padding:8px 10px;gap:14px}
+}
 *,*::before,*::after{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;font-size:14px}
 /* Layout: an electronic sic bo cabinet — dragon canopy over a glass dice tube, red neon screen with cream bet grid below, players + history at the foot. Single dark look by choice. */
 :root{
