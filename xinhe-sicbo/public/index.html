@@ -1,6 +1,18 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫禾骰寶</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<!-- 5K / 10K chips -->
+<style>
+.chip[data-v="5000"]{background:#1f8a4c}.chip[data-v="10000"]{background:#c9971c;color:#2a1a00}
+</style>
+<script>
+addEventListener("DOMContentLoaded",()=>{
+  const box=document.querySelector(".chips");
+  for(const [v,t] of [[5000,"5K"],[10000,"10K"]]){const b=document.createElement("button");b.className="chip";b.dataset.v=v;b.id="c"+v;b.textContent=t;box.append(b)}
+  const all=document.querySelectorAll(".chip");
+  all.forEach(c=>c.onclick=()=>{chip=+c.dataset.v;all.forEach(x=>x.setAttribute("aria-pressed",x===c))});
+});
+</script>
 <!-- Player colours: every player's bets shown on the board -->
 <style>
 .pchips{position:absolute;top:-8px;right:-5px;display:flex;flex-direction:row-reverse;z-index:3;pointer-events:none}
