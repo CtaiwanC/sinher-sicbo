@@ -77,14 +77,17 @@ const touch = a => dirty.add(keyOf(a.name));
 setInterval(flush, 3000);
 
 // ---- 網頁 ----
-const INDEX = path.join(__dirname, "public", "index.html");
+// 頁面：/ 鑫河大廳、/sicbo 骰寶、/poker 德州撲克
+const PAGES = { "/": "lobby.html", "/sicbo": "index.html", "/poker": "poker.html" };
 const server = http.createServer((req, res) => {
-  if (req.url === "/healthz") { res.writeHead(200); return res.end("ok"); }
-  if (req.url === "/" || req.url.startsWith("/?")) {
+  const url = req.url.split("?")[0].replace(/\/+$/, "") || "/";
+  if (url === "/healthz") { res.writeHead(200); return res.end("ok"); }
+  const page = PAGES[url];
+  if (page) {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
-    return fs.createReadStream(INDEX).pipe(res);
+    return fs.createReadStream(path.join(__dirname, "public", page)).pipe(res);
   }
-  res.writeHead(404); res.end("not found");
+  res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }); res.end('找不到這個頁面。<a href="/">回鑫河大廳</a>');
 });
 
 // ---- 遊戲 ----
