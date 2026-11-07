@@ -32,7 +32,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
 .tag .sc{color:#9fe0b4;font-variant-numeric:tabular-nums}
 #t2{left:50%;top:22px;transform:translateX(-50%)}
 #h2{left:50%;top:52px;transform:translateX(-50%)}
-#m2{right:740px;top:52px;flex-direction:row-reverse}
+#m2{left:730px;top:52px}
 #t3{left:22px;top:76px}#h3{left:30px;top:120px}#m3{left:150px;top:350px;transform:translate(-50%,-50%) rotate(90deg)}
 #t1{right:22px;top:76px}#h1{right:30px;top:120px}#m1{left:850px;top:350px;transform:translate(-50%,-50%) rotate(-90deg)}
 #t0{left:30px;top:520px}#m0{left:30px;top:548px}
@@ -73,6 +73,18 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
 .tl.tp::after{content:"聽";position:absolute;top:-17px;left:50%;transform:translateX(-50%);background:#c62828;color:#fff;font:700 12px/16px sans-serif;border-radius:4px;padding:0 4px}
 #info{right:22px;top:18px;font-size:12px;color:#cfe9d9;background:rgba(0,0,0,.4);padding:5px 10px;border-radius:8px;text-align:right;line-height:1.5}
 /* 結算 */
+#chooser,#login{position:absolute;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:10}
+#login{display:none}
+#chooser .box,#login .box{background:linear-gradient(#173f2b,#0d2a1c);border:2px solid #d4a94a;border-radius:14px;padding:22px 26px;width:460px;display:grid;gap:12px;text-align:center}
+#chooser h2,#login h2{margin:0;color:#ffd54f;font:900 30px/1.2 "Noto Serif TC",serif}
+#chooser button,#login button{border:0;border-radius:10px;padding:12px;font-size:17px;font-weight:700;cursor:pointer;background:#c62828;color:#fff}
+#chooser button.g,#login button.g{background:#455a64}
+#chooser p,#login p{margin:0;font-size:13px;color:#cfe9d9;line-height:1.6}
+#login input{padding:10px;border-radius:8px;border:1px solid #6b5a2c;background:#0b2318;color:#fff;font-size:16px}
+#lerr{color:#ff8a80;min-height:1.2em}
+#net{left:110px;top:18px;display:none;gap:8px;align-items:center;font-size:13px;background:rgba(0,0,0,.45);border:1px solid rgba(243,210,122,.45);border-radius:8px;padding:4px 8px}
+#net button{border:0;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;background:#c62828;color:#fff}
+#net button.g{background:#455a64}
 #modal{position:absolute;inset:0;background:rgba(0,0,0,.65);display:none;place-items:center;z-index:9}
 #modal .box{background:linear-gradient(#173f2b,#0d2a1c);border:2px solid #d4a94a;border-radius:14px;padding:18px 22px;width:640px;display:grid;gap:10px}
 #modal h2{margin:0;color:#ffd54f;text-align:center;font:900 28px/1.2 "Noto Serif TC",serif}
@@ -97,6 +109,15 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
   <div id="hand" class="abs row"></div>
   <div id="ting" class="abs"></div><div id="info" class="abs"></div>
   <div id="modal"><div class="box" id="mbox"></div></div>
+  <div id="net" class="abs"></div>
+  <div id="chooser"><div class="box"><h2>鑫河麻將</h2>
+    <button id="goOnline">連線對戰（和真人同桌）</button>
+    <button id="goLocal" class="g">單機練習（對 3 位電腦）</button>
+    <p>連線桌 24 小時開著，空位由電腦補上，你入座就換掉一位電腦。<br>連線對戰用骰寶帳號登入，輸贏直接加減帳戶籌碼（底 300、每台 100）。</p></div></div>
+  <div id="login"><div class="box"><h2>登入鑫河帳號</h2>
+    <input id="lname" placeholder="暱稱" maxlength="12"><input id="lpw" type="password" placeholder="密碼（4 個字以上）">
+    <div id="lerr"></div><button id="lin">登入</button><button id="lreg" class="g">建立新帳號</button>
+    <p>跟骰寶共用同一個帳號和籌碼。</p></div></div>
 </div>
 <script>
 // 台灣十六張麻將：你 + 3 位電腦。逆時針順序 你(下)→下家(右)→對家(上)→上家(左)
@@ -157,6 +178,7 @@ let scores=[0,0,0,0];try{const s=JSON.parse(localStorage.getItem("xh-mj-scores")
 const save=()=>{try{localStorage.setItem("xh-mj-scores",JSON.stringify(scores))}catch{}};
 let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null,cdTimer=null,showTing=false;
 const seatWind=i=>(i-dealer+4)%4;
+let online=false,seated=false,ws=null,offset=0,curPrompt=null,shownResult=null;
 const msg=t=>$("msg").textContent=t;
 
 function newWall(){const w=[];for(let t=0;t<34;t++)for(let k=0;k<4;k++)w.push(t);for(let f=34;f<42;f++)w.push(f);
@@ -168,7 +190,7 @@ function removeN(arr,t,n){for(let k=0;k<n;k++)arr.splice(arr.indexOf(t),1)}
 function fit(){const s=Math.min(innerWidth/1000,innerHeight/700);$("stage").style.transform=`translate(-50%,-50%) scale(${s})`}
 addEventListener("resize",fit);fit();
 const meldHTML=(m,cls)=>`<div class="meld">${m.t.map((x,k)=>tile(m.k==="ankong"&&k!==1&&k!==2?99:x,cls)).join("")}</div>`;
-function tag(i){const p=P[i];return `<span class="w">${WIND[seatWind(i)]}</span>${i?POS[i]+"・":""}${p.name}${i===dealer?"<b>莊</b>":""}<span class="sc">${scores[i]>=0?"+":""}${scores[i].toLocaleString()}</span>`}
+function tag(i){const p=P[i];const sc=online?(p.bot?"電腦":"籌碼 "+(p.bal||0).toLocaleString()):(scores[i]>=0?"+":"")+scores[i].toLocaleString();return `<span class="w">${WIND[seatWind(i)]}</span>${i&&(!online||seated)?POS[i]+"・":""}${p.name}${i===0&&(!online||seated)?"（你）":""}${i===dealer?"<b>莊</b>":""}<span class="sc">${sc}</span>`}
 function waits(hand){const c=counts(hand),r=[];for(let t=0;t<34;t++)if(c[t]<4){c[t]++;if(isWin(c))r.push(t);c[t]--}return r}
 function seen(t){let n=P[0].hand.filter(x=>x===t).length;P.forEach((p,i)=>{n+=p.discards.filter(x=>x===t).length;p.melds.forEach(m=>{if(i===0||m.k!=="ankong")n+=m.t.filter(x=>x===t).length})});return n}
 function tingHTML(w){return `聽 ${w.map(t=>tile(t,"xs")).join("")} 剩 ${w.reduce((a,t)=>a+Math.max(0,4-seen(t)),0)} 張`}
@@ -184,21 +206,21 @@ function render(){
   $("h3").innerHTML=P[3].hand.map(()=>`<div class="side"></div>`).join("");
   $("h1").innerHTML=P[1].hand.map(()=>`<div class="side r"></div>`).join("");
   $("cmid").innerHTML=`${WIND[roundWind]}風圈<br>剩 ${Math.max(0,wall.length-KEEP)} 張`;
-  $("info").innerHTML=`底 ${BASE}・台 ${PER}<br>莊家：${P[dealer].name}`;
+  $("info").innerHTML=`底 ${BASE}・台 ${PER}${online?"（帳戶籌碼）":""}<br>莊家：${P[dealer].name}`;
   const me=P[0];let h=me.hand.slice(),nw=null;
   if(myTurn&&myTurn.drawn!=null){h.splice(h.indexOf(myTurn.drawn),1);nw=myTurn.drawn}
   h.sort((a,b)=>a-b);$("hand").className="abs row"+(myTurn?" can":"");
   const cand=myTurn&&showTing?tingCandidates():{};
   $("hand").innerHTML=h.map(t=>tile(t,"big"+(cand[t]?" tp":""))).join("")+(nw!=null?tile(nw,"big new"+(cand[nw]?" tp":"")):"");
-  const tg=$("ting");let w=[];if(me.hand.length%3===1)w=waits(me.hand);
+  const tg=$("ting");let w=[];if((!online||seated)&&me.hand.length%3===1)w=waits(me.hand);
   if(w.length){tg.innerHTML=tingHTML(w);tg.classList.add("show")}else tg.classList.remove("show");
 }
 $("hand").addEventListener("mouseover",e=>{const el=e.target.closest(".tl.tp");if(!el)return;const w=tingCandidates()[+el.dataset.t];if(w){$("ting").innerHTML="打這張"+tingHTML(w);$("ting").classList.add("show")}});
 $("hand").addEventListener("click",e=>{const el=e.target.closest(".tl");if(!el||!myTurn)return;done({type:"discard",tile:+el.dataset.t})});
 // 動作列：吃 碰 槓 胡 取消 + 倒數
-function bar(avail,onTimeout,showCancel){
+function bar(avail,onTimeout,showCancel,secs){
   clearInterval(cdTimer);const a=$("acts");a.innerHTML="";a.classList.add("show");
-  const cd=document.createElement("span");cd.className="cd";let n=THINK;cd.textContent=String(n).padStart(2,"0");a.append(cd);
+  const cd=document.createElement("span");cd.className="cd";let n=secs||THINK;cd.textContent=String(n).padStart(2,"0");a.append(cd);
   for(const [lb,key] of [["吃","chi"],["碰","pong"],["槓","kong"],["聽","ting"],["胡","win"]]){
     const b=document.createElement("button");b.textContent=lb;if(key==="win")b.classList.add("hu");
     if(avail[key]){b.classList.add("on");b.onclick=avail[key]}a.append(b)}
@@ -340,5 +362,74 @@ function finish(res){
   $("next").onclick=()=>{$("modal").style.display="none";playHand()};
   $("reset").onclick=()=>{scores=[0,0,0,0];save();$("modal").style.display="none";playHand()};
 }
-playHand();
+// ---------- 連線對戰 ----------
+const snd=m=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(m))};
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch{}};
+function showLogin(t){$("login").style.display="grid";$("lerr").textContent=t||"";const n=ls("sicbo-name");if(n&&!$("lname").value)$("lname").value=n}
+function auth(mode){snd({type:"mj_auth",mode,name:$("lname").value,password:$("lpw").value})}
+$("lin").onclick=()=>auth("login");$("lreg").onclick=()=>auth("register");
+$("lpw").onkeydown=e=>{if(e.key==="Enter")auth("login")};
+function connect(){
+  online=true;$("chooser").style.display="none";$("net").style.display="flex";$("net").textContent="連線中…";
+  ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/mj-ws");
+  ws.onopen=()=>{const t=ls("sicbo-token");if(t)snd({type:"mj_auth",mode:"resume",token:t});else showLogin()};
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}
+    if(m.type==="mj_auth"){if(m.ok){ls("sicbo-token",m.token);ls("sicbo-name",m.name);$("login").style.display="none";$("lpw").value=""}else showLogin(m.text)}
+    else if(m.type==="mj_info")msg(m.text);
+    else if(m.type==="mj_state")onState(m)};
+  ws.onclose=()=>{$("net").textContent="連線中斷，重新連線中…";setTimeout(connect,3000)};
+}
+function onState(m){
+  offset=m.now-Date.now();seated=m.my>=0;const my=seated?m.my:0,pos=s=>(s-my+4)%4;
+  P=[0,1,2,3].map(p=>{const s=m.seats[(p+my)%4];return{name:s.name+(s.away?"（離線）":""),bot:s.bot,bal:s.bal,hand:s.hand||Array(s.n).fill(99),melds:s.melds,flowers:s.flowers,discards:s.discards}});
+  dealer=pos(m.dealer);roundWind=m.roundWind;wall={length:m.wallLeft+KEEP};turn=m.turn>=0?pos(m.turn):-1;
+  last=m.last?{p:pos(m.last.p),t:m.last.t}:null;msg(m.msg||"");
+  const pr=m.prompt;
+  if(pr&&(!curPrompt||curPrompt.id!==pr.id)){curPrompt=pr;startPrompt(pr)}
+  else if(!pr&&curPrompt){curPrompt=null;clearInterval(cdTimer);$("acts").classList.remove("show");myTurn=null;resolver=null;showTing=false}
+  render();
+  const y=m.you;
+  $("net").innerHTML=y?`${y.name}・籌碼 ${y.balance.toLocaleString()} ${y.seated?'<button class="g" id="bLeave">離座</button>':'<button id="bSit">入座</button>'}<button class="g" id="bOut">換帳號</button>`:"未登入";
+  if($("bSit"))$("bSit").onclick=()=>snd({type:"sit"});
+  if($("bLeave"))$("bLeave").onclick=()=>snd({type:"leave"});
+  if($("bOut"))$("bOut").onclick=()=>{ls("sicbo-token","");showLogin()};
+  if(!y&&$("login").style.display!=="grid"&&!ls("sicbo-token"))showLogin();
+  if(!seated&&y&&!m.prompt)msg((m.msg||"")+"　｜　按左上「入座」加入牌局");
+  const r=m.result;
+  if(r&&shownResult!==r.id){shownResult=r.id;showResult(r)}
+  else if(!r&&shownResult!==null){shownResult=null;$("modal").style.display="none"}
+}
+function startPrompt(pr){
+  resolver=v=>snd({type:"mj_act",id:pr.id,v});
+  const secs=Math.max(1,Math.round((pr.deadline-offset-Date.now())/1000));
+  if(pr.kind==="self"){
+    myTurn={drawn:pr.drawn};const av={};
+    if(pr.canZimo)av.win=()=>done({type:"win"});
+    if(pr.kongs.length)av.kong=()=>pr.kongs.length===1?done({type:"kong",t:pr.kongs[0].t}):chooseBar(pr.kongs.map(k=>({tiles:[k.t,k.t,k.t,k.t],v:{type:"kong",t:k.t}})));
+    if(Object.keys(tingCandidates()).length)av.ting=()=>{showTing=!showTing;render()};
+    bar(av,()=>{},false,secs);msg(pr.canZimo?"可以自摸！":"輪到你，點一張牌打出");
+    if(pr.drawn!=null&&!pr.canZimo&&!pr.kongs.length){const x=P[0].hand.slice();x.splice(x.indexOf(pr.drawn),1);
+      if(waits(x).length){msg("聽牌中，摸到 "+tname(pr.drawn)+" 自動打出");setTimeout(()=>{if(curPrompt===pr&&resolver)done({type:"discard",tile:pr.drawn})},900)}}
+  }else{
+    const o=pr.options,av={};
+    for(const ty of["win","pong","kong"]){const x=o.find(z=>z.type===ty);if(x)av[ty]=()=>done(x)}
+    const ch=o.filter(z=>z.type==="chi");
+    if(ch.length)av.chi=()=>ch.length===1?done(ch[0]):chooseBar(ch.map(x=>({tiles:[x.use[0],pr.tile,x.use[1]].sort((a,b)=>a-b),v:x})));
+    bar(av,()=>{},true,secs);
+  }
+}
+function showResult(r){
+  let html;
+  if(r.draw)html=`<h2>流局</h2><p style="text-align:center;margin:0">牌摸完了，莊家連莊。</p>`;
+  else html=`<h2>${r.name} ${r.zimo?"自摸":"胡牌"}！ ${r.tai} 台</h2>
+    <div class="row" style="flex-wrap:wrap;justify-content:center">${r.flowers.map(f=>tile(f,"sm")).join("")}${r.melds.map(m=>meldHTML(m,"sm")).join("")}</div>
+    <div class="row" style="justify-content:center;margin-bottom:6px">${r.hand.map(x=>tile(x,"mid")).join("")}<span style="width:10px"></span>${tile(r.t,"mid win")}</div>
+    ${r.zimo?"":`<p style="margin:0;text-align:center">${r.from} 放槍 ${tname(r.t)}</p>`}
+    <div class="tais">${r.list.map(([n,v])=>`<span>${n}　<b style="color:#ffd54f">${v} 台</b></span>`).join("")}</div>
+    <p style="margin:0;font-size:14px;color:#cfe9d9">底 ${BASE}・每台 ${PER}：${r.pays.join("，")}</p>`;
+  $("mbox").innerHTML=html+`<p style="text-align:center;margin:0;color:#ffd54f">下一局即將開始…</p>`;
+  $("modal").style.display="grid";
+}
+$("goOnline").onclick=connect;
+$("goLocal").onclick=()=>{$("chooser").style.display="none";playHand()};
 </script></body></html>
