@@ -41,13 +41,17 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
 #hand.can .tl:hover{transform:translateY(-10px)}
 #hand .tl.new{margin-left:16px}
 /* 打出的牌 */
-.pool{width:236px;display:flex;flex-wrap:wrap;gap:4px 2px;align-content:flex-start;height:126px}
-#d0{left:382px;top:368px}
-#d2{left:382px;top:106px;transform:rotate(180deg)}
-#d3{left:240px;top:237px;transform:rotate(90deg)}
-#d1{left:524px;top:237px;transform:rotate(-90deg)}
+.pool{width:240px;height:120px;display:flex;flex-wrap:wrap;gap:6px 2px;align-content:flex-start}
+.pool .tl{--w:24px;--h:32px}
+.pool.dense{gap:4px 2px}.pool.dense .tl{--w:19px;--h:26px}
+.pool.denser{gap:3px 1px}.pool.denser .tl{--w:16px;--h:22px}
+/* 四家打出的牌圍成風車形，彼此不重疊 */
+#d0{left:440px;top:360px}
+#d1{left:500px;top:180px;transform:rotate(-90deg)}
+#d2{left:320px;top:120px;transform:rotate(180deg)}
+#d3{left:260px;top:300px;transform:rotate(90deg)}
 /* 中央 */
-#center{left:425px;top:240px;width:150px;height:120px;border-radius:12px;background:rgba(0,0,0,.55);border:2px solid #b38a3c;display:grid;grid-template:1fr 1.3fr 1fr/1fr 1.3fr 1fr;place-items:center;font:900 20px/1 "Noto Serif TC",serif}
+#center{left:442px;top:242px;width:116px;height:116px;border-radius:12px;background:rgba(0,0,0,.55);border:2px solid #b38a3c;display:grid;grid-template:1fr 1.3fr 1fr/1fr 1.3fr 1fr;place-items:center;font:900 20px/1 "Noto Serif TC",serif}
 #center .me{color:#ffd54f}
 #center .mid{grid-area:2/2;font:600 12px/1.35 sans-serif;text-align:center;color:#cfe9d9}
 #cw0{grid-area:3/2}#cw1{grid-area:2/3}#cw2{grid-area:1/2}#cw3{grid-area:2/1}
@@ -174,6 +178,7 @@ function render(){
     $("cw"+i).textContent=WIND[seatWind(i)];$("cw"+i).className=i===0?"me":"";
     const p=P[i],mine=p.flowers.map(f=>tile(f,i?"sm":"mid")).join("")+p.melds.map(m=>meldHTML(m,i?"sm":"mid")).join("");
     $("m"+i).innerHTML=mine;
+    const n=p.discards.length;$("d"+i).classList.toggle("dense",n>27&&n<=44);$("d"+i).classList.toggle("denser",n>44);
     $("d"+i).innerHTML=p.discards.map((t,k)=>tile(t,"xs"+(last&&last.p===i&&k===p.discards.length-1?" last":""))).join("")}
   $("h2").innerHTML=P[2].hand.map(()=>tile(99,"xs")).join("");
   $("h3").innerHTML=P[3].hand.map(()=>`<div class="side"></div>`).join("");
