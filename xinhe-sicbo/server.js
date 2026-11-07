@@ -91,7 +91,12 @@ const server = http.createServer((req, res) => {
 });
 
 // ---- 遊戲 ----
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });   // 骰寶
+const mjs = new WebSocketServer({ noServer: true });   // 麻將
+server.on("upgrade", (req, socket, head) => {
+  const target = req.url.startsWith("/mj-ws") ? mjs : wss;
+  target.handleUpgrade(req, socket, head, ws => target.emit("connection", ws, req));
+});
 let round = 0, start = 0, dice = null, revealed = false;
 const send = (ws, m) => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); };
 const broadcast = m => { const s = JSON.stringify(m); for (const c of wss.clients) if (c.readyState === 1) c.send(s); };
@@ -229,8 +234,34 @@ wss.on("connection", ws => {
 });
 setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; ws.ping(); } }, 25000);
 
+// 麻將頁面的登入（共用骰寶帳號）
+const mjFails = new WeakMap();
+function mjAuth(m, ws) {
+  if (m.mode === "resume") {
+    const a = typeof m.token === "string" && m.token.length > 20 && [...accounts.values()].find(x => x.token === m.token);
+    return a ? { acct: a } : { err: "" };
+  }
+  const f = mjFails.get(ws) || { n: 0, until: 0 };
+  if (Date.now() < f.until) return { err: "嘗試太多次，請 30 秒後再試" };
+  const name = String(m.name || "").replace(/\s+/g, " ").trim().slice(0, 12), pw = String(m.password || "");
+  if (!name) return { err: "請輸入暱稱" };
+  if (pw.length < 4 || pw.length > 64) return { err: "密碼需要 4 到 64 個字元" };
+  let a = accounts.get(keyOf(name));
+  if (m.mode === "register") {
+    if (a) return { err: "這個暱稱已經有人用了，請換一個，或改用「登入」" };
+    const salt = crypto.randomBytes(16).toString("hex");
+    a = { id: crypto.randomBytes(6).toString("hex"), name, salt, hash: hashPw(pw, salt), balance: START, color: null, token: crypto.randomBytes(24).toString("hex"), bets: {}, round: 0, lastSeen: Date.now() };
+    accounts.set(keyOf(name), a); touch(a); return { acct: a };
+  }
+  const ok = a && crypto.timingSafeEqual(Buffer.from(hashPw(pw, a.salt), "hex"), Buffer.from(a.hash, "hex"));
+  if (!ok) { f.n++; if (f.n >= 5) { f.n = 0; f.until = Date.now() + 30000; } mjFails.set(ws, f); return { err: "暱稱或密碼不正確" }; }
+  if (!a.token) a.token = crypto.randomBytes(24).toString("hex");
+  a.lastSeen = Date.now(); touch(a); return { acct: a };
+}
+
 process.on("SIGTERM", async () => { for (const a of accounts.values()) endSession(a); await flush(); process.exit(0); });
 loadStore().then(() => {
+  require("./mahjong")(mjs, { touch, auth: mjAuth });
   setInterval(() => {
     const now = Date.now();
     if (!start || now >= start + ROUND) newRound();
