@@ -1,69 +1,142 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>鑫河麻將</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@900&display=swap">
 <style>
-:root{--gold:#e8c66a;--ivory:#f6ecd8;--muted:#b9cfc4;--w:min(5.6vw,40px);color-scheme:dark}
+:root{color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 35%,#1b6f50,#0a2c20 75%) fixed,#0a2c20;color:var(--ivory);font-family:"PingFang TC","Noto Sans TC",system-ui,sans-serif;padding:8px max(10px,env(safe-area-inset-left,0px)) 16px}
-.wrap{max-width:1000px;margin:0 auto;display:grid;gap:8px}
-header{display:flex;align-items:center;gap:10px}
-header a{color:var(--gold);text-decoration:none;font-size:1.6rem;line-height:1}
-h1{margin:0;font-size:1.25rem;color:var(--gold);letter-spacing:.12em}
-#info{margin-left:auto;font-size:.85rem;color:var(--muted)}
-.opps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.opp,.me,.pool{background:rgba(0,0,0,.22);border:1px solid rgba(232,198,106,.25);border-radius:10px;padding:6px 8px}
-.opp.on,.me.on{border-color:var(--gold);box-shadow:0 0 12px rgba(232,198,106,.45)}
-.nm{font-size:.85rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.nm b{background:#c62828;color:#fff;border-radius:4px;padding:0 4px;font-size:.7rem}
-.nm .sc{margin-left:auto;color:var(--gold);font-variant-numeric:tabular-nums}
-.cnt{font-size:.75rem;color:var(--muted)}
-.row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:1px;min-height:4px}
-.meld{display:inline-flex;margin-right:5px}
-.pools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.pool .lb{font-size:.75rem;color:var(--muted);margin-bottom:2px}
-.pool .row{min-height:calc(min(4vw,24px)*1.36)}
-#msg{text-align:center;font-size:.9rem;min-height:1.3em;color:var(--gold)}
-.t{--h:calc(var(--w)*1.36);width:var(--w);height:var(--h);background:linear-gradient(#fffdf6,#ece2c6);border-radius:calc(var(--w)*.12);border-bottom:calc(var(--w)*.08) solid #b6a273;color:#222;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:calc(var(--w)*.44);line-height:1.02;box-shadow:0 1px 2px rgba(0,0,0,.5);user-select:none;flex:none}
-.t small{font-size:calc(var(--w)*.34);font-weight:700}
-.t.m{color:#c62828}.t.p{color:#1565c0}.t.s{color:#2e7d32}.t.zr{color:#c62828}.t.zg{color:#2e7d32}.t.f{color:#ad1457}
-.t.back{background:linear-gradient(#2f8a64,#1a5c41);border-bottom-color:#0d3526}
-.t.sm{--w:min(3.8vw,26px)}
-.t.xs{--w:min(4vw,24px)}
-.t.last{outline:3px solid #ffd54f;outline-offset:-1px}
-#hand{gap:2px;margin-top:4px}
-#hand .t{cursor:pointer;transition:transform .1s}
-#hand.can .t:hover{transform:translateY(-6px)}
-#hand .t.new{margin-left:calc(var(--w)*.35)}
-#acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:38px}
-#acts button,.btn{background:#c62828;color:#fff;border:0;border-radius:8px;padding:8px 18px;font-size:1rem;font-weight:700;cursor:pointer}
-#acts button.pass{background:#455a64}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;place-items:center;padding:16px;z-index:9}
-#modal .box{background:#13432f;border:2px solid var(--gold);border-radius:14px;padding:18px;max-width:560px;width:100%;display:grid;gap:10px;max-height:90vh;overflow:auto}
-#modal h2{margin:0;color:var(--gold);text-align:center}
-#modal ul{margin:0;padding-left:20px;line-height:1.6}
+html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"PingFang TC","Noto Sans TC",system-ui,sans-serif;color:#f4ecd6}
+#stage{position:absolute;left:50%;top:50%;width:1000px;height:700px;transform-origin:center;border-radius:18px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%,#2f8a52 0%,#1d6a3c 55%,#0f4024 100%);box-shadow:inset 0 0 0 10px #5a3518,inset 0 0 0 14px #2c1708,inset 0 0 80px rgba(0,0,0,.55)}
+#stage::before{content:"鑫河麻將";position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font:900 120px/1 "Noto Serif TC",serif;color:rgba(0,0,0,.08);letter-spacing:.1em;pointer-events:none;white-space:nowrap}
+.abs{position:absolute}
+#back{left:22px;top:18px;z-index:5;color:#f3d27a;text-decoration:none;font:700 15px/1 sans-serif;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px}
+/* 牌 */
+.tl{position:relative;width:var(--w);height:var(--h);flex:none;border-radius:calc(var(--w)*.12);
+  background:linear-gradient(180deg,#fffef8 0%,#f3ecd6 78%,#e5d9b8 100%);
+  box-shadow:0 calc(var(--w)*.14) 0 #2e8a55,0 calc(var(--w)*.14 + 2px) 3px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.08)}
+.tl svg{position:absolute;inset:6% 7%;width:86%;height:88%}
+.tl.bk{background:linear-gradient(180deg,#43b06f,#258a4e 70%,#1a6a3b);box-shadow:0 calc(var(--w)*.14) 0 #f3ecd6,0 calc(var(--w)*.14 + 2px) 3px rgba(0,0,0,.45)}
+.big{--w:50px;--h:70px}.mid{--w:34px;--h:47px}.sm{--w:28px;--h:38px}.xs{--w:26px;--h:35px}
+.tl.last{outline:3px solid #ffd54f;outline-offset:1px}
+.tl.win{outline:3px solid #ff5252;outline-offset:1px}
+.side{width:30px;height:15px;flex:none;border-radius:3px;background:linear-gradient(90deg,#f3ecd6 0 30%,#3aa565 30% 100%);box-shadow:0 2px 2px rgba(0,0,0,.4)}
+.side.r{background:linear-gradient(270deg,#f3ecd6 0 30%,#3aa565 30% 100%)}
+.row{display:flex;gap:2px;align-items:flex-end}
+.col{display:flex;flex-direction:column;gap:2px}
+.meld{display:flex;gap:1px;margin-right:8px}
+/* 座位 */
+.tag{font-size:13px;background:rgba(0,0,0,.45);border:1px solid rgba(243,210,122,.45);border-radius:8px;padding:3px 9px;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tag.on{border-color:#ffd54f;box-shadow:0 0 12px #ffd54f}
+.tag b{background:#c62828;color:#fff;border-radius:4px;padding:0 4px;font-size:11px}
+.tag .w{color:#ffd54f;font-weight:700}
+.tag .sc{color:#9fe0b4;font-variant-numeric:tabular-nums}
+#t2{left:50%;top:22px;transform:translateX(-50%)}
+#h2{left:50%;top:52px;transform:translateX(-50%)}
+#m2{right:740px;top:52px;flex-direction:row-reverse}
+#t3{left:22px;top:76px}#h3{left:30px;top:120px}#m3{left:150px;top:350px;transform:translate(-50%,-50%) rotate(90deg)}
+#t1{right:22px;top:76px}#h1{right:30px;top:120px}#m1{left:850px;top:350px;transform:translate(-50%,-50%) rotate(-90deg)}
+#t0{left:30px;top:520px}#m0{left:30px;top:548px}
+#hand{left:50%;top:604px;transform:translateX(-50%)}
+#hand .tl{cursor:pointer;transition:transform .08s}
+#hand.can .tl:hover{transform:translateY(-10px)}
+#hand .tl.new{margin-left:16px}
+/* 打出的牌 */
+.pool{width:236px;display:flex;flex-wrap:wrap;gap:4px 2px;align-content:flex-start;height:126px}
+#d0{left:382px;top:368px}
+#d2{left:382px;top:106px;transform:rotate(180deg)}
+#d3{left:240px;top:237px;transform:rotate(90deg)}
+#d1{left:524px;top:237px;transform:rotate(-90deg)}
+/* 中央 */
+#center{left:425px;top:240px;width:150px;height:120px;border-radius:12px;background:rgba(0,0,0,.55);border:2px solid #b38a3c;display:grid;grid-template:1fr 1.3fr 1fr/1fr 1.3fr 1fr;place-items:center;font:900 20px/1 "Noto Serif TC",serif}
+#center .me{color:#ffd54f}
+#center .mid{grid-area:2/2;font:600 12px/1.35 sans-serif;text-align:center;color:#cfe9d9}
+#cw0{grid-area:3/2}#cw1{grid-area:2/3}#cw2{grid-area:1/2}#cw3{grid-area:2/1}
+#msg{left:50%;top:494px;transform:translateX(-50%);font-size:14px;color:#ffe08a;text-shadow:0 1px 2px #000;white-space:nowrap}
+/* 動作列 */
+#acts{left:50%;top:515px;transform:translateX(-50%);display:none;align-items:center;gap:6px;background:linear-gradient(#2a2a2a,#0d0d0d);border:2px solid #6b5a2c;border-radius:10px;padding:6px 10px;z-index:4;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+#acts.show{display:flex}
+#acts .cd{font:900 34px/1 "Noto Serif TC",serif;color:#ffcf3f;width:52px;text-align:center}
+#acts button{width:58px;height:58px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);border:0;background:linear-gradient(#5a5a5a,#2b2b2b);color:#8a8a8a;font:900 24px/1 "Noto Serif TC",serif;cursor:default}
+#acts button.on{background:linear-gradient(#fff6d0,#e2c46a);color:#1a1a1a;cursor:pointer}
+#acts button.hu{clip-path:circle(48%);}
+#acts button.hu.on{background:radial-gradient(#ff6b6b,#b71c1c);color:#fff}
+#acts button.x{width:auto;clip-path:none;border-radius:8px;padding:0 14px;height:42px;font-size:17px}
+#acts button.x.on{background:linear-gradient(#e0e0e0,#9e9e9e)}
+#acts .opt{display:flex;gap:2px;padding:4px;border-radius:6px;cursor:pointer;background:#3a3a3a}
+#acts .opt:hover{background:#6b5a2c}
+#info{right:22px;top:18px;font-size:12px;color:#cfe9d9;background:rgba(0,0,0,.4);padding:5px 10px;border-radius:8px;text-align:right;line-height:1.5}
+/* 結算 */
+#modal{position:absolute;inset:0;background:rgba(0,0,0,.65);display:none;place-items:center;z-index:9}
+#modal .box{background:linear-gradient(#173f2b,#0d2a1c);border:2px solid #d4a94a;border-radius:14px;padding:18px 22px;width:640px;display:grid;gap:10px}
+#modal h2{margin:0;color:#ffd54f;text-align:center;font:900 28px/1.2 "Noto Serif TC",serif}
+#modal .tais{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;font-size:15px}
+#modal .btns{display:flex;gap:10px;justify-content:center}
+#modal button{background:#c62828;color:#fff;border:0;border-radius:8px;padding:9px 22px;font-size:16px;font-weight:700;cursor:pointer}
+#modal button.g{background:#455a64}
+#rot{display:none}
+@media (orientation:portrait) and (max-width:700px){#rot{display:block;position:fixed;top:6px;left:0;right:0;text-align:center;font-size:12px;color:#ffd54f;z-index:20}}
 </style></head><body>
-<div class="wrap">
-  <header><a href="/" aria-label="回大廳">‹</a><h1>鑫河麻將</h1><span id="info"></span></header>
-  <section class="opps"><div class="opp" id="s3"></div><div class="opp" id="s2"></div><div class="opp" id="s1"></div></section>
-  <section class="pools"><div class="pool"><div class="lb" id="l2"></div><div class="row" id="d2"></div></div><div class="pool"><div class="lb" id="l1"></div><div class="row" id="d1"></div></div>
-    <div class="pool"><div class="lb" id="l3"></div><div class="row" id="d3"></div></div><div class="pool"><div class="lb" id="l0"></div><div class="row" id="d0"></div></div></section>
-  <div id="msg"></div>
-  <section class="me" id="s0"><div class="nm" id="n0"></div><div class="row" id="m0"></div><div class="row" id="hand"></div></section>
-  <div id="acts"></div>
+<div id="rot">橫放手機可以看得更清楚</div>
+<div id="stage">
+  <a id="back" class="abs" href="/">‹ 大廳</a>
+  <div id="t2" class="abs tag"></div><div id="h2" class="abs row"></div><div id="m2" class="abs row"></div>
+  <div id="t3" class="abs tag"></div><div id="h3" class="abs col"></div><div id="m3" class="abs row"></div>
+  <div id="t1" class="abs tag"></div><div id="h1" class="abs col"></div><div id="m1" class="abs row"></div>
+  <div id="d2" class="abs pool"></div><div id="d3" class="abs pool"></div><div id="d1" class="abs pool"></div><div id="d0" class="abs pool"></div>
+  <div id="center" class="abs"><span id="cw2"></span><span id="cw3"></span><div class="mid" id="cmid"></div><span id="cw1"></span><span id="cw0"></span></div>
+  <div id="msg" class="abs"></div>
+  <div id="acts" class="abs"></div>
+  <div id="t0" class="abs tag"></div><div id="m0" class="abs row"></div>
+  <div id="hand" class="abs row"></div>
+  <div id="info" class="abs"></div>
+  <div id="modal"><div class="box" id="mbox"></div></div>
 </div>
-<div id="modal"><div class="box" id="mbox"></div></div>
 <script>
-// 台灣十六張麻將：你 + 3 位電腦。逆時針順序 你→下家(右)→對家→上家(左)
+// 台灣十六張麻將：你 + 3 位電腦。逆時針順序 你(下)→下家(右)→對家(上)→上家(左)
 const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const NUM=["一","二","三","四","五","六","七","八","九"],SU=["萬","筒","條"],ZI=["東","南","西","北","中","發","白"],FL=["春","夏","秋","冬","梅","蘭","竹","菊"],WIND=["東","南","西","北"];
-const NAMES=["你","阿龍","小美","老K"], POS=["你","下家","對家","上家"];
-const BASE=300, PER=100, KEEP=16;
+const NUM=["一","二","三","四","五","六","七","八","九"],NUMW=["一","二","三","四","伍","六","七","八","九"],SU=["萬","筒","條"],ZI=["東","南","西","北","中","發","白"],FL=["春","夏","秋","冬","梅","蘭","竹","菊"],WIND=["東","南","西","北"];
+const NAMES=["你","阿龍","小美","老K"], POS=["自己","下家","對家","上家"];
+const BASE=300, PER=100, KEEP=16, THINK=15;
 const tname=t=>t<27?NUM[t%9]+SU[t/9|0]:t<34?ZI[t-27]:FL[t-34];
-function tile(t,cls=""){
-  if(t===99)return `<span class="t back ${cls}"></span>`;
-  let a,b="",c="";
-  if(t<27){a=NUM[t%9];b=SU[t/9|0];c="mps"[t/9|0]}else if(t<34){a=ZI[t-27];c=t===31?"zr":t===32?"zg":""}else{a=FL[t-34];c="f"}
-  return `<span class="t ${c} ${cls}" data-t="${t}">${a}${b?"<small>"+b+"</small>":""}</span>`;
+
+// ---------- 牌面圖案（SVG）----------
+const CB="#1f5fb0",CG="#178a47",CR="#c62828",CK="#18264a",SERIF="'Noto Serif TC','Songti TC','PMingLiU',serif";
+const tx=(c,x,y,s,col)=>`<text x="${x}" y="${y}" font-size="${s}" fill="${col}" text-anchor="middle" font-family="${SERIF}" font-weight="900">${c}</text>`;
+const ring=(x,y,r,col)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/><circle cx="${x}" cy="${y}" r="${r*.74}" fill="#fff"/><circle cx="${x}" cy="${y}" r="${r*.52}" fill="${col}"/><circle cx="${x}" cy="${y}" r="${r*.2}" fill="#fff"/>`;
+const stick=(x,y,h,col)=>`<rect x="${x-3.6}" y="${y-h/2}" width="7.2" height="${h}" rx="3.2" fill="${col}"/><rect x="${x-4.4}" y="${y-1.2}" width="8.8" height="2.4" rx="1" fill="${col}"/><line x1="${x}" y1="${y-h/2+2.5}" x2="${x}" y2="${y+h/2-2.5}" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>`;
+function dots(n){
+  const L={2:[[30,21,CG],[30,59,CB]],3:[[14,15,CB],[30,40,CR],[46,65,CG]],4:[[16,21,CB],[44,21,CG],[16,59,CG],[44,59,CB]],
+    5:[[15,17,CB],[45,17,CG],[30,40,CR],[15,63,CG],[45,63,CB]],6:[[17,14,CG],[43,14,CG],[17,44,CR],[43,44,CR],[17,67,CR],[43,67,CR]],
+    7:[[12,11,CG],[30,21,CG],[48,31,CG],[17,51,CR],[43,51,CR],[17,69,CR],[43,69,CR]],
+    8:[[17,11,CB],[43,11,CB],[17,30,CB],[43,30,CB],[17,50,CB],[43,50,CB],[17,69,CB],[43,69,CB]],
+    9:[[12,14,CB],[30,14,CB],[48,14,CB],[12,40,CR],[30,40,CR],[48,40,CR],[12,66,CG],[30,66,CG],[48,66,CG]]};
+  const R={2:13,3:11,4:12,5:10.5,6:9.5,7:8.5,8:8.5,9:8.5};
+  if(n===1)return ring(30,40,26,CG)+`<circle cx="30" cy="40" r="11" fill="${CR}"/><circle cx="30" cy="40" r="5" fill="#fff"/>`+[0,45,90,135,180,225,270,315].map(a=>`<circle cx="${30+16.5*Math.cos(a*Math.PI/180)}" cy="${40+16.5*Math.sin(a*Math.PI/180)}" r="2.3" fill="${CB}"/>`).join("");
+  return L[n].map(([x,y,c])=>ring(x,y,R[n],c)).join("");
 }
+function bams(n){
+  if(n===1)return `<path d="M30 18c-8 0-12 7-11 14 1 8 6 14 11 18 5-4 10-10 11-18 1-7-3-14-11-14z" fill="${CG}"/><circle cx="30" cy="16" r="6" fill="${CR}"/><path d="M33 15l7-2-6 5z" fill="#e0a020"/><circle cx="31.5" cy="15" r="1.4" fill="#fff"/><path d="M22 48l-8 20M30 50v22M38 48l8 20" stroke="${CB}" stroke-width="3.5" stroke-linecap="round"/><path d="M24 30c3 4 9 4 12 0" stroke="#fff" stroke-width="1.6" fill="none"/>`;
+  const H=n>=7?19:24,L={2:[[30,21],[30,59]],3:[[30,21],[17,59],[43,59]],4:[[17,21],[43,21],[17,59],[43,59]],5:[[13,21],[47,21],[30,40,1],[13,59],[47,59]],
+    6:[[13,21],[30,21],[47,21],[13,59],[30,59],[47,59]],7:[[30,12,1],[13,40],[30,40],[47,40],[13,67],[30,67],[47,67]],
+    8:[[10,21],[23,21],[37,21],[50,21],[10,59],[23,59],[37,59],[50,59]],9:[[13,13],[30,13,1],[47,13],[13,40],[30,40,1],[47,40],[13,67],[30,67,1],[47,67]]};
+  return L[n].map(([x,y,r])=>stick(x,y,H,r?CR:CG)).join("");
+}
+const FACE={};
+function face(t){
+  if(FACE[t])return FACE[t];let s;
+  if(t<9)s=tx(NUMW[t],30,32,27,CK)+tx("萬",30,71,32,CR);
+  else if(t<18)s=dots(t-8);else if(t<27)s=bams(t-17);
+  else if(t<31)s=tx(ZI[t-27],30,55,44,CK);
+  else if(t===31)s=tx("中",30,56,46,CR);
+  else if(t===32)s=tx("發",30,56,46,CG);
+  else if(t===33)s=`<rect x="11" y="12" width="38" height="56" rx="4" fill="none" stroke="${CB}" stroke-width="4.5"/><rect x="17.5" y="18.5" width="25" height="43" rx="2" fill="none" stroke="${CB}" stroke-width="1.6"/>`;
+  else{const k=t-34,col=k<4?CR:CG;s=`<text x="9" y="14" font-size="12" fill="${CB}" font-family="sans-serif" font-weight="700">${k%4+1}</text>`+
+    [0,72,144,216,288].map(a=>`<ellipse cx="${46+5*Math.cos(a*Math.PI/180)}" cy="${16+5*Math.sin(a*Math.PI/180)}" rx="3.2" ry="3.2" fill="#e57373"/>`).join("")+`<circle cx="46" cy="16" r="2.4" fill="#ffca28"/>`+tx(FL[k],30,60,36,col)}
+  return FACE[t]=`<svg viewBox="0 0 60 80">${s}</svg>`;
+}
+const tile=(t,cls="")=>t===99?`<div class="tl bk ${cls}"></div>`:`<div class="tl ${cls}" data-t="${t}">${face(t)}</div>`;
+
+// ---------- 胡牌判斷 ----------
 const counts=a=>{const c=Array(34).fill(0);a.forEach(t=>c[t]++);return c};
 function sets(c,mode){const i=c.findIndex(x=>x>0);if(i<0)return true;
   if(mode!=="c"&&c[i]>=3){c[i]-=3;const ok=sets(c,mode);c[i]+=3;if(ok)return true}
@@ -74,7 +147,7 @@ const isWin=c=>decomp(c);
 
 let scores=[0,0,0,0];try{const s=JSON.parse(localStorage.getItem("xh-mj-scores"));if(Array.isArray(s)&&s.length===4)scores=s}catch{}
 const save=()=>{try{localStorage.setItem("xh-mj-scores",JSON.stringify(scores))}catch{}};
-let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null;
+let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null,cdTimer=null;
 const seatWind=i=>(i-dealer+4)%4;
 const msg=t=>$("msg").textContent=t;
 
@@ -84,23 +157,41 @@ function draw(p,tail){let t=tail?wall.pop():wall.shift();while(t>=34){p.flowers.
 function removeN(arr,t,n){for(let k=0;k<n;k++)arr.splice(arr.indexOf(t),1)}
 
 // ---------- 畫面 ----------
-const meldHTML=m=>`<span class="meld">${m.t.map(x=>tile(m.k==="ankong"?99:x,"sm")).join("")}</span>`;
-function nameLine(i){const p=P[i];return `${WIND[seatWind(i)]}・${p.name}${i===dealer?" <b>莊</b>":""}<span class="sc">${scores[i].toLocaleString()}</span>`}
+function fit(){const s=Math.min(innerWidth/1000,innerHeight/700);$("stage").style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener("resize",fit);fit();
+const meldHTML=(m,cls)=>`<div class="meld">${m.t.map((x,k)=>tile(m.k==="ankong"&&k!==1&&k!==2?99:x,cls)).join("")}</div>`;
+function tag(i){const p=P[i];return `<span class="w">${WIND[seatWind(i)]}</span>${i?POS[i]+"・":""}${p.name}${i===dealer?"<b>莊</b>":""}<span class="sc">${scores[i]>=0?"+":""}${scores[i].toLocaleString()}</span>`}
 function render(){
-  $("info").textContent=`${WIND[roundWind]}風圈・剩 ${Math.max(0,wall.length-KEEP)} 張`;
-  for(const i of [1,2,3]){const p=P[i];const el=$("s"+i);el.className="opp"+(turn===i?" on":"");
-    el.innerHTML=`<div class="nm">${nameLine(i)}</div><div class="cnt">${POS[i]}・手牌 ${p.hand.length} 張</div><div class="row">${p.flowers.map(f=>tile(f,"sm")).join("")}${p.melds.map(meldHTML).join("")}</div>`}
-  for(let i=0;i<4;i++){$("l"+i).textContent=(i?P[i].name:"你")+" 打出";
-    $("d"+i).innerHTML=P[i].discards.map((t,k)=>tile(t,"xs"+(last&&last.p===i&&k===P[i].discards.length-1?" last":""))).join("")}
-  const me=P[0];$("s0").className="me"+(turn===0?" on":"");$("n0").innerHTML=nameLine(0);
-  $("m0").innerHTML=me.flowers.map(f=>tile(f,"sm")).join("")+me.melds.map(meldHTML).join("");
-  let h=me.hand.slice(),nw=null;if(myTurn&&myTurn.drawn!=null){h.splice(h.indexOf(myTurn.drawn),1);nw=myTurn.drawn}
-  h.sort((a,b)=>a-b);$("hand").className="row"+(myTurn?" can":"");
-  $("hand").innerHTML=h.map(t=>tile(t)).join("")+(nw!=null?tile(nw,"new"):"");
+  for(let i=0;i<4;i++){const el=$("t"+i);el.innerHTML=tag(i);el.classList.toggle("on",turn===i);
+    $("cw"+i).textContent=WIND[seatWind(i)];$("cw"+i).className=i===0?"me":"";
+    const p=P[i],mine=p.flowers.map(f=>tile(f,i?"sm":"mid")).join("")+p.melds.map(m=>meldHTML(m,i?"sm":"mid")).join("");
+    $("m"+i).innerHTML=mine;
+    $("d"+i).innerHTML=p.discards.map((t,k)=>tile(t,"xs"+(last&&last.p===i&&k===p.discards.length-1?" last":""))).join("")}
+  $("h2").innerHTML=P[2].hand.map(()=>tile(99,"xs")).join("");
+  $("h3").innerHTML=P[3].hand.map(()=>`<div class="side"></div>`).join("");
+  $("h1").innerHTML=P[1].hand.map(()=>`<div class="side r"></div>`).join("");
+  $("cmid").innerHTML=`${WIND[roundWind]}風圈<br>剩 ${Math.max(0,wall.length-KEEP)} 張`;
+  $("info").innerHTML=`底 ${BASE}・台 ${PER}<br>莊家：${P[dealer].name}`;
+  const me=P[0];let h=me.hand.slice(),nw=null;
+  if(myTurn&&myTurn.drawn!=null){h.splice(h.indexOf(myTurn.drawn),1);nw=myTurn.drawn}
+  h.sort((a,b)=>a-b);$("hand").className="abs row"+(myTurn?" can":"");
+  $("hand").innerHTML=h.map(t=>tile(t,"big")).join("")+(nw!=null?tile(nw,"big new"):"");
 }
-$("hand").addEventListener("click",e=>{const el=e.target.closest(".t");if(!el||!myTurn)return;done({type:"discard",tile:+el.dataset.t})});
-function showActs(list){const a=$("acts");a.innerHTML="";list.forEach(o=>{const b=document.createElement("button");b.textContent=o.label;if(o.pass)b.className="pass";b.onclick=o.fn;a.append(b)})}
-function done(v){const r=resolver;resolver=null;myTurn=null;showActs([]);render();if(r)r(v)}
+$("hand").addEventListener("click",e=>{const el=e.target.closest(".tl");if(!el||!myTurn)return;done({type:"discard",tile:+el.dataset.t})});
+// 動作列：吃 碰 槓 胡 取消 + 倒數
+function bar(avail,onTimeout,showCancel){
+  clearInterval(cdTimer);const a=$("acts");a.innerHTML="";a.classList.add("show");
+  const cd=document.createElement("span");cd.className="cd";let n=THINK;cd.textContent=String(n).padStart(2,"0");a.append(cd);
+  for(const [lb,key] of [["吃","chi"],["碰","pong"],["槓","kong"],["胡","win"]]){
+    const b=document.createElement("button");b.textContent=lb;if(key==="win")b.classList.add("hu");
+    if(avail[key]){b.classList.add("on");b.onclick=avail[key]}a.append(b)}
+  if(showCancel){const b=document.createElement("button");b.className="x on";b.textContent="取消";b.onclick=()=>done(null);a.append(b)}
+  cdTimer=setInterval(()=>{n--;cd.textContent=String(Math.max(0,n)).padStart(2,"0");if(n<=0){clearInterval(cdTimer);onTimeout()}},1000);
+}
+function chooseBar(list){const a=$("acts");a.querySelectorAll("button").forEach(b=>b.remove());
+  list.forEach(o=>{const d=document.createElement("div");d.className="opt";d.innerHTML=o.tiles.map(t=>tile(t,"sm")).join("");d.onclick=()=>done(o.v);a.append(d)});
+  const b=document.createElement("button");b.className="x on";b.textContent="取消";b.onclick=()=>done(null);a.append(b)}
+function done(v){clearInterval(cdTimer);$("acts").classList.remove("show");const r=resolver;resolver=null;myTurn=null;render();if(r)r(v)}
 
 // ---------- 電腦 ----------
 function botDiscard(i){const p=P[i],c=counts(p.hand);let best=p.hand[0],bv=1e9;
@@ -124,10 +215,12 @@ async function selfTurn(i,drawn,didDraw,kongDraw){
   let r;
   if(p.bot){await sleep(650);
     if(canZimo)r={type:"win"};else if(kongs.length&&Math.random()<.8)r={type:"kong",...kongs[0]};else r={type:"discard",tile:botDiscard(i)}}
-  else{const opts=[];if(canZimo)opts.push({label:"自摸",fn:()=>done({type:"win"})});
-    kongs.forEach(k=>opts.push({label:"槓 "+tname(k.t),fn:()=>done({type:"kong",...k})}));
-    msg(canZimo?"可以自摸！":"輪到你打牌，點一張牌打出");
-    r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};showActs(opts);render()})}
+  else{msg(canZimo?"可以自摸！":"輪到你，點一張牌打出");
+    r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};render();
+      const av={};if(canZimo)av.win=()=>done({type:"win"});
+      if(kongs.length)av.kong=()=>kongs.length===1?done({type:"kong",...kongs[0]}):chooseBar(kongs.map(k=>({tiles:[k.t,k.t,k.t,k.t],v:{type:"kong",...k}})));
+      const auto=didDraw&&drawn!=null?drawn:p.hand.slice().sort((a,b)=>a-b).pop();
+      bar(av,()=>done(canZimo?{type:"win"}:{type:"discard",tile:auto}),false)})}
   if(r.type==="kong"){if(r.an){removeN(p.hand,r.t,4);p.melds.push({k:"ankong",t:[r.t,r.t,r.t,r.t]});msg(p.name+" 暗槓")}
     else{removeN(p.hand,r.t,1);const m=p.melds.find(m=>m.k==="pong"&&m.t[0]===r.t);m.k="kong";m.t.push(r.t);msg(p.name+" 加槓 "+tname(r.t))}}
   r.kongDraw=kongDraw;return r}
@@ -142,8 +235,12 @@ async function claims(from,t){
     if(!o.length)continue;
     let d;
     if(P[i].bot)d=botClaim(i,t,o);
-    else{msg(`${P[from].name} 打出 ${tname(t)}，要不要？`);
-      d=await new Promise(res=>{resolver=res;showActs([...o.map(x=>({label:x.type==="win"?"胡":x.type==="pong"?"碰":x.type==="kong"?"槓":"吃 "+[x.use[0],t,x.use[1]].sort((a,b)=>a-b).map(tname).join(""),fn:()=>done(x)})),{label:"過",pass:true,fn:()=>done(null)}])})}
+    else{msg(`${P[from].name} 打出 ${tname(t)}`);
+      d=await new Promise(res=>{resolver=res;const av={};
+        for(const ty of ["win","pong","kong"]){const x=o.find(z=>z.type===ty);if(x)av[ty]=()=>done(x)}
+        const ch=o.filter(z=>z.type==="chi");
+        if(ch.length)av.chi=()=>ch.length===1?done(ch[0]):chooseBar(ch.map(x=>({tiles:[x.use[0],t,x.use[1]].sort((a,b)=>a-b),v:x})));
+        bar(av,()=>done(null),true)})}
     if(d)dec.push({...d,p:i,order:k})}
   const pr={win:3,kong:2,pong:2,chi:1};
   dec.sort((a,b)=>pr[b.type]-pr[a.type]||a.order-b.order);
@@ -203,21 +300,21 @@ function scoreHand(i,t,zimo,kongDraw){
   return L}
 
 function finish(res){
-  turn=-1;myTurn=null;showActs([]);render();
+  turn=-1;myTurn=null;clearInterval(cdTimer);$("acts").classList.remove("show");render();
   let html;
-  if(!res){html=`<h2>流局</h2><p style="text-align:center">牌摸完了，莊家連莊。</p>`;}
+  if(!res){html=`<h2>流局</h2><p style="text-align:center;margin:0">牌摸完了，莊家連莊。</p>`;}
   else{const{w,from,t,kongDraw}=res,zimo=from<0,L=scoreHand(w,t,zimo,kongDraw),tai=L.reduce((a,x)=>a+x[1],0),pay=[];
     const payers=zimo?[1,2,3].map(k=>(w+k)%4):[from];
     payers.forEach(j=>{const extra=(j===dealer&&w!==dealer)?1:0,amt=BASE+PER*(tai+extra);scores[j]-=amt;scores[w]+=amt;pay.push(`${P[j].name} 付 ${amt.toLocaleString()}${extra?"（含莊家 1 台）":""}`)});
     save();const p=P[w],hand=p.hand.slice();if(zimo)hand.splice(hand.indexOf(t),1);hand.sort((a,b)=>a-b);
-    html=`<h2>${p.name} ${zimo?"自摸":"胡牌"}！${tai} 台</h2>
-      <div class="row">${p.flowers.map(f=>tile(f,"sm")).join("")}${p.melds.map(meldHTML).join("")}</div>
-      <div class="row">${hand.map(x=>tile(x,"sm")).join("")}<span style="width:8px"></span>${tile(t,"sm last")}</div>
-      ${zimo?"":`<p style="margin:0">${P[from].name} 放槍 ${tname(t)}</p>`}
-      <ul>${L.map(([n,v])=>`<li>${n}　${v} 台</li>`).join("")}</ul>
-      <p style="margin:0">底 ${BASE}・每台 ${PER}：${pay.join("，")}</p>`;
+    html=`<h2>${p.name} ${zimo?"自摸":"胡牌"}！ ${tai} 台</h2>
+      <div class="row" style="flex-wrap:wrap;justify-content:center">${p.flowers.map(f=>tile(f,"sm")).join("")}${p.melds.map(m=>meldHTML(m,"sm")).join("")}</div>
+      <div class="row" style="justify-content:center;margin-bottom:6px">${hand.map(x=>tile(x,"mid")).join("")}<span style="width:10px"></span>${tile(t,"mid win")}</div>
+      ${zimo?"":`<p style="margin:0;text-align:center">${P[from].name} 放槍 ${tname(t)}</p>`}
+      <div class="tais">${L.map(([n,v])=>`<span>${n}　<b style="color:#ffd54f">${v} 台</b></span>`).join("")}</div>
+      <p style="margin:0;font-size:14px;color:#cfe9d9">底 ${BASE}・每台 ${PER}：${pay.join("，")}</p>`;
     if(w!==dealer){dealer=(dealer+1)%4;passes++;if(passes%4===0)roundWind=(roundWind+1)%4}}
-  $("mbox").innerHTML=html+`<button class="btn" id="next">下一局</button><button class="btn" id="reset" style="background:#455a64">分數歸零</button>`;
+  $("mbox").innerHTML=html+`<div class="btns"><button id="next">下一局</button><button class="g" id="reset">分數歸零</button></div>`;
   $("modal").style.display="grid";
   $("next").onclick=()=>{$("modal").style.display="none";playHand()};
   $("reset").onclick=()=>{scores=[0,0,0,0];save();$("modal").style.display="none";playHand()};
