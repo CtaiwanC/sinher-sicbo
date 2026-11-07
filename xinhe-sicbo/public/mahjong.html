@@ -64,6 +64,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
 #acts button.x.on{background:linear-gradient(#e0e0e0,#9e9e9e)}
 #acts .opt{display:flex;gap:2px;padding:4px;border-radius:6px;cursor:pointer;background:#3a3a3a}
 #acts .opt:hover{background:#6b5a2c}
+#ting{right:30px;top:500px;display:none;align-items:center;gap:4px;background:rgba(0,0,0,.5);border:1px solid #c62828;border-radius:8px;padding:4px 8px;font-size:13px;color:#ffd54f}
+#ting.show{display:flex}
+.tl.tp::after{content:"聽";position:absolute;top:-17px;left:50%;transform:translateX(-50%);background:#c62828;color:#fff;font:700 12px/16px sans-serif;border-radius:4px;padding:0 4px}
 #info{right:22px;top:18px;font-size:12px;color:#cfe9d9;background:rgba(0,0,0,.4);padding:5px 10px;border-radius:8px;text-align:right;line-height:1.5}
 /* 結算 */
 #modal{position:absolute;inset:0;background:rgba(0,0,0,.65);display:none;place-items:center;z-index:9}
@@ -88,7 +91,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#06140e;font-family:"P
   <div id="acts" class="abs"></div>
   <div id="t0" class="abs tag"></div><div id="m0" class="abs row"></div>
   <div id="hand" class="abs row"></div>
-  <div id="info" class="abs"></div>
+  <div id="ting" class="abs"></div><div id="info" class="abs"></div>
   <div id="modal"><div class="box" id="mbox"></div></div>
 </div>
 <script>
@@ -118,7 +121,8 @@ function bams(n){
   if(n===1)return `<path d="M30 18c-8 0-12 7-11 14 1 8 6 14 11 18 5-4 10-10 11-18 1-7-3-14-11-14z" fill="${CG}"/><circle cx="30" cy="16" r="6" fill="${CR}"/><path d="M33 15l7-2-6 5z" fill="#e0a020"/><circle cx="31.5" cy="15" r="1.4" fill="#fff"/><path d="M22 48l-8 20M30 50v22M38 48l8 20" stroke="${CB}" stroke-width="3.5" stroke-linecap="round"/><path d="M24 30c3 4 9 4 12 0" stroke="#fff" stroke-width="1.6" fill="none"/>`;
   const H=n>=7?19:24,L={2:[[30,21],[30,59]],3:[[30,21],[17,59],[43,59]],4:[[17,21],[43,21],[17,59],[43,59]],5:[[13,21],[47,21],[30,40,1],[13,59],[47,59]],
     6:[[13,21],[30,21],[47,21],[13,59],[30,59],[47,59]],7:[[30,12,1],[13,40],[30,40],[47,40],[13,67],[30,67],[47,67]],
-    8:[[10,21],[23,21],[37,21],[50,21],[10,59],[23,59],[37,59],[50,59]],9:[[13,13],[30,13,1],[47,13],[13,40],[30,40,1],[47,40],[13,67],[30,67,1],[47,67]]};
+    8:null,9:[[13,13],[30,13,1],[47,13],[13,40],[30,40,1],[47,40],[13,67],[30,67,1],[47,67]]};
+  if(n===8){const g=(x,y,a)=>`<g transform="rotate(${a} ${x} ${y})">${stick(x,y,24,CG)}</g>`;return g(9,21,0)+g(23,21,28)+g(37,21,-28)+g(51,21,0)+g(9,59,0)+g(23,59,-28)+g(37,59,28)+g(51,59,0)}
   return L[n].map(([x,y,r])=>stick(x,y,H,r?CR:CG)).join("");
 }
 const FACE={};
@@ -147,7 +151,7 @@ const isWin=c=>decomp(c);
 
 let scores=[0,0,0,0];try{const s=JSON.parse(localStorage.getItem("xh-mj-scores"));if(Array.isArray(s)&&s.length===4)scores=s}catch{}
 const save=()=>{try{localStorage.setItem("xh-mj-scores",JSON.stringify(scores))}catch{}};
-let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null,cdTimer=null;
+let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null,cdTimer=null,showTing=false;
 const seatWind=i=>(i-dealer+4)%4;
 const msg=t=>$("msg").textContent=t;
 
@@ -161,6 +165,10 @@ function fit(){const s=Math.min(innerWidth/1000,innerHeight/700);$("stage").styl
 addEventListener("resize",fit);fit();
 const meldHTML=(m,cls)=>`<div class="meld">${m.t.map((x,k)=>tile(m.k==="ankong"&&k!==1&&k!==2?99:x,cls)).join("")}</div>`;
 function tag(i){const p=P[i];return `<span class="w">${WIND[seatWind(i)]}</span>${i?POS[i]+"・":""}${p.name}${i===dealer?"<b>莊</b>":""}<span class="sc">${scores[i]>=0?"+":""}${scores[i].toLocaleString()}</span>`}
+function waits(hand){const c=counts(hand),r=[];for(let t=0;t<34;t++)if(c[t]<4){c[t]++;if(isWin(c))r.push(t);c[t]--}return r}
+function seen(t){let n=P[0].hand.filter(x=>x===t).length;P.forEach((p,i)=>{n+=p.discards.filter(x=>x===t).length;p.melds.forEach(m=>{if(i===0||m.k!=="ankong")n+=m.t.filter(x=>x===t).length})});return n}
+function tingHTML(w){return `聽 ${w.map(t=>tile(t,"xs")).join("")} 剩 ${w.reduce((a,t)=>a+Math.max(0,4-seen(t)),0)} 張`}
+function tingCandidates(){const h=P[0].hand,o={};if(h.length%3!==2)return o;for(const t of new Set(h)){const x=h.slice();x.splice(x.indexOf(t),1);const w=waits(x);if(w.length)o[t]=w}return o}
 function render(){
   for(let i=0;i<4;i++){const el=$("t"+i);el.innerHTML=tag(i);el.classList.toggle("on",turn===i);
     $("cw"+i).textContent=WIND[seatWind(i)];$("cw"+i).className=i===0?"me":"";
@@ -175,14 +183,18 @@ function render(){
   const me=P[0];let h=me.hand.slice(),nw=null;
   if(myTurn&&myTurn.drawn!=null){h.splice(h.indexOf(myTurn.drawn),1);nw=myTurn.drawn}
   h.sort((a,b)=>a-b);$("hand").className="abs row"+(myTurn?" can":"");
-  $("hand").innerHTML=h.map(t=>tile(t,"big")).join("")+(nw!=null?tile(nw,"big new"):"");
+  const cand=myTurn&&showTing?tingCandidates():{};
+  $("hand").innerHTML=h.map(t=>tile(t,"big"+(cand[t]?" tp":""))).join("")+(nw!=null?tile(nw,"big new"+(cand[nw]?" tp":"")):"");
+  const tg=$("ting");let w=[];if(me.hand.length%3===1)w=waits(me.hand);
+  if(w.length){tg.innerHTML=tingHTML(w);tg.classList.add("show")}else tg.classList.remove("show");
 }
+$("hand").addEventListener("mouseover",e=>{const el=e.target.closest(".tl.tp");if(!el)return;const w=tingCandidates()[+el.dataset.t];if(w){$("ting").innerHTML="打這張"+tingHTML(w);$("ting").classList.add("show")}});
 $("hand").addEventListener("click",e=>{const el=e.target.closest(".tl");if(!el||!myTurn)return;done({type:"discard",tile:+el.dataset.t})});
 // 動作列：吃 碰 槓 胡 取消 + 倒數
 function bar(avail,onTimeout,showCancel){
   clearInterval(cdTimer);const a=$("acts");a.innerHTML="";a.classList.add("show");
   const cd=document.createElement("span");cd.className="cd";let n=THINK;cd.textContent=String(n).padStart(2,"0");a.append(cd);
-  for(const [lb,key] of [["吃","chi"],["碰","pong"],["槓","kong"],["胡","win"]]){
+  for(const [lb,key] of [["吃","chi"],["碰","pong"],["槓","kong"],["聽","ting"],["胡","win"]]){
     const b=document.createElement("button");b.textContent=lb;if(key==="win")b.classList.add("hu");
     if(avail[key]){b.classList.add("on");b.onclick=avail[key]}a.append(b)}
   if(showCancel){const b=document.createElement("button");b.className="x on";b.textContent="取消";b.onclick=()=>done(null);a.append(b)}
@@ -191,7 +203,7 @@ function bar(avail,onTimeout,showCancel){
 function chooseBar(list){const a=$("acts");a.querySelectorAll("button").forEach(b=>b.remove());
   list.forEach(o=>{const d=document.createElement("div");d.className="opt";d.innerHTML=o.tiles.map(t=>tile(t,"sm")).join("");d.onclick=()=>done(o.v);a.append(d)});
   const b=document.createElement("button");b.className="x on";b.textContent="取消";b.onclick=()=>done(null);a.append(b)}
-function done(v){clearInterval(cdTimer);$("acts").classList.remove("show");const r=resolver;resolver=null;myTurn=null;render();if(r)r(v)}
+function done(v){clearInterval(cdTimer);showTing=false;$("acts").classList.remove("show");const r=resolver;resolver=null;myTurn=null;render();if(r)r(v)}
 
 // ---------- 電腦 ----------
 function botDiscard(i){const p=P[i],c=counts(p.hand);let best=p.hand[0],bv=1e9;
@@ -216,9 +228,10 @@ async function selfTurn(i,drawn,didDraw,kongDraw){
   if(p.bot){await sleep(650);
     if(canZimo)r={type:"win"};else if(kongs.length&&Math.random()<.8)r={type:"kong",...kongs[0]};else r={type:"discard",tile:botDiscard(i)}}
   else{msg(canZimo?"可以自摸！":"輪到你，點一張牌打出");
-    r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};render();
+    while(!r)r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};render();
       const av={};if(canZimo)av.win=()=>done({type:"win"});
       if(kongs.length)av.kong=()=>kongs.length===1?done({type:"kong",...kongs[0]}):chooseBar(kongs.map(k=>({tiles:[k.t,k.t,k.t,k.t],v:{type:"kong",...k}})));
+      if(Object.keys(tingCandidates()).length)av.ting=()=>{showTing=!showTing;render();msg(showTing?"標「聽」的牌打出去就聽牌，滑過去可看聽哪幾張":"輪到你，點一張牌打出")};
       const auto=didDraw&&drawn!=null?drawn:p.hand.slice().sort((a,b)=>a-b).pop();
       bar(av,()=>done(canZimo?{type:"win"}:{type:"discard",tile:auto}),false)})}
   if(r.type==="kong"){if(r.an){removeN(p.hand,r.t,4);p.melds.push({k:"ankong",t:[r.t,r.t,r.t,r.t]});msg(p.name+" 暗槓")}
@@ -264,7 +277,7 @@ async function playHand(){
     await sleep(p.bot?450:200);
     const c=await claims(cur,t);
     if(c){
-      if(c.type==="win")return finish({w:c.p,from:cur,t});
+      if(c.type==="win"){p.discards.pop();last=null;return finish({w:c.p,from:cur,t})}
       p.discards.pop();last=null;const q=P[c.p];
       if(c.type==="pong"){removeN(q.hand,t,2);q.melds.push({k:"pong",t:[t,t,t]});msg(q.name+" 碰 "+tname(t));mode="claim"}
       else if(c.type==="kong"){removeN(q.hand,t,3);q.melds.push({k:"kong",t:[t,t,t,t]});msg(q.name+" 槓 "+tname(t));mode="draw";kongDraw=true}
