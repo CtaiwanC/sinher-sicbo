@@ -232,6 +232,9 @@ async function selfTurn(i,drawn,didDraw,kongDraw){
   let r;
   if(p.bot){await sleep(650);
     if(canZimo)r={type:"win"};else if(kongs.length&&Math.random()<.8)r={type:"kong",...kongs[0]};else r={type:"discard",tile:botDiscard(i)}}
+  else if(didDraw&&drawn!=null&&!canZimo&&!kongs.length&&(()=>{const x=p.hand.slice();x.splice(x.indexOf(drawn),1);return waits(x).length>0})()){
+    // 已經聽牌：摸到不能胡的牌就自動打出
+    myTurn={drawn};render();myTurn=null;msg("聽牌中，摸到 "+tname(drawn)+" 自動打出");await sleep(900);r={type:"discard",tile:drawn}}
   else{msg(canZimo?"可以自摸！":"輪到你，點一張牌打出");
     while(!r)r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};render();
       const av={};if(canZimo)av.win=()=>done({type:"win"});
