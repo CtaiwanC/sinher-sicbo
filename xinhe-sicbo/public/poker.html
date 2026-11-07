@@ -1,0 +1,453 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>德州撲克 · 鑫河大廳</title>
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}.backlink{color:#d8b25a;font-size:13px;text-decoration:none;display:inline-block;margin-bottom:6px}.backlink:hover{text-decoration:underline}</style>
+</head><body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* 版面：中央橢圓牌桌，座位沿外圈分佈，下方固定操作列；刻意單一深色賭場風格 */
+:root{
+  --bg:#0f1714; --rail:#3a2418; --rail-hi:#5c3a26; --felt:#14563f; --felt-hi:#1d7354;
+  --ink:#f1ebdc; --muted:#a9b5ab; --gold:#d8b25a; --red:#c8423b; --card:#fbf8f1; --panel:#18221e; --line:#2c3a33;
+  --display:"Bodoni Moda","Times New Roman",serif; --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--body)}
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:28px;margin:0;letter-spacing:.02em}
+h1 small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:400;margin-left:8px;letter-spacing:.08em}
+.meta{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+button{font-family:var(--body);font-size:15px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 16px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--gold)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.gold{background:var(--gold);color:#1c1408;border-color:var(--gold);font-weight:700}
+button.red{background:#4a1d1a;border-color:#6d2b26}
+
+/* 設定 */
+#setup{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+#setup h2{margin:0;font-size:18px}
+.seatlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.seatrow{display:flex;gap:8px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.seatrow input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);font:inherit;font-size:15px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);cursor:pointer;white-space:nowrap;background:transparent;color:var(--muted)}
+.tag.h{color:var(--gold);border-color:var(--gold)}
+.x{padding:2px 8px;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hint{color:var(--muted);font-size:13px}
+.row label{display:flex;gap:6px;align-items:center;font-size:14px}
+.row select{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px;font:inherit}
+
+/* 牌桌 */
+#game{display:flex;flex-direction:column;gap:12px}
+.table{position:relative;width:100%;aspect-ratio:16/10;max-width:100%}
+.felt{position:absolute;inset:9% 7%;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,var(--felt-hi),var(--felt) 70%);
+  box-shadow:0 0 0 14px var(--rail),0 0 0 16px var(--rail-hi),0 18px 40px #000a,inset 0 0 50px #0006}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:70%}
+.board{display:flex;gap:6px;min-height:68px}
+.pot{font-family:var(--display);font-size:18px;color:var(--gold);font-variant-numeric:tabular-nums}
+.status{font-size:13px;color:var(--ink);text-align:center;min-height:18px;opacity:.9}
+.seat{position:absolute;transform:translate(-50%,-50%);width:118px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:opacity .3s}
+.seat .cards{display:flex;gap:3px;height:52px}
+.plate{background:#0d1411ee;border:1px solid var(--line);border-radius:10px;padding:5px 8px;width:100%;text-align:center;box-sizing:border-box}
+.plate .nm{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plate .ch{font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
+.plate .lb{font-size:11px;color:var(--muted);min-height:14px}
+.seat.turn .plate{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 18px #d8b25a66}
+.seat.fold{opacity:.4}
+.seat.out{opacity:.2}
+.seat.win .plate{border-color:#7fd3a5;box-shadow:0 0 0 2px #7fd3a5}
+.btn-d{position:absolute;top:-6px;right:4px;width:20px;height:20px;border-radius:50%;background:var(--card);color:#111;font-size:11px;font-weight:800;display:grid;place-items:center;font-family:var(--display)}
+.bet{position:absolute;transform:translate(-50%,-50%);background:#0009;border:1px solid var(--gold);color:var(--gold);font-size:12px;padding:1px 8px;border-radius:99px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.card{width:44px;height:62px;border-radius:5px;background:var(--card);color:#151515;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;line-height:1;box-shadow:0 2px 4px #0007;font-size:19px}
+.card .s{font-size:18px}
+.card.r{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,#7a2620 0 5px,#932f28 5px 10px);border:3px solid var(--card)}
+.card.empty{background:transparent;border:1px dashed #ffffff30;box-shadow:none}
+.card.hi{box-shadow:0 0 0 3px var(--gold)}
+.seat .card{width:36px;height:50px;font-size:15px}.seat .card .s{font-size:14px}
+.reveal{position:absolute;inset:0;display:grid;place-items:center;z-index:5}
+.reveal button{font-size:16px}
+
+.bar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.acts button{flex:1;min-width:90px}
+.raise{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.raise input[type=range]{flex:1;min-width:140px;accent-color:var(--gold)}
+.raise .amt{font-variant-numeric:tabular-nums;color:var(--gold);min-width:70px;font-weight:700}
+.quick{display:flex;gap:6px}.quick button{padding:6px 10px;font-size:13px}
+.log{max-height:150px;overflow:auto;font-size:13px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column-reverse}
+.log div{padding:2px 0}.log b{color:var(--ink);font-weight:500}
+
+@media (max-width:640px){
+  .table{aspect-ratio:3/4}
+  .felt{inset:10% 12%}
+  .seat{width:84px}.plate{padding:3px 4px}.plate .nm{font-size:12px}
+  .seat .card{width:28px;height:40px;font-size:12px}.seat .card .s{font-size:11px}.seat .cards{height:40px}
+  .card{width:34px;height:48px;font-size:15px}.card .s{font-size:13px}.board{gap:4px;min-height:48px}
+  .center{width:66%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <a class="backlink" href="/">← 鑫河大廳</a>
+  <header>
+    <h1>Texas Hold'em<small>德州撲克</small></h1>
+    <div class="meta" id="meta">盲注 10 / 20</div>
+  </header>
+
+  <section id="setup">
+    <h2>設定座位（4～9 人）</h2>
+    <div class="seatlist" id="seatlist"></div>
+    <div class="row">
+      <button id="addHuman">＋ 真人玩家</button>
+      <button id="addBot">＋ 電腦玩家</button>
+      <button id="fillBot">補滿電腦到 <span id="fillN">6</span> 人</button>
+      <select id="fillTo" aria-label="補到幾人"></select>
+    </div>
+    <div class="row">
+      <label>起始籌碼 <select id="stack"><option>500</option><option selected>1000</option><option>2000</option><option>5000</option></select></label>
+      <label>盲注 <select id="blinds"><option value="5">5/10</option><option value="10" selected>10/20</option><option value="25">25/50</option></select></label>
+      <label>電腦速度 <select id="speed"><option value="1200">慢</option><option value="700" selected>中</option><option value="300">快</option></select></label>
+    </div>
+    <p class="hint" id="setupHint"></p>
+    <div class="row"><button class="gold" id="start">開始遊戲</button></div>
+    <p class="hint">多位真人共用一台裝置時，輪到誰才會顯示「看牌」按鈕，其他人請別偷看。點座位旁的標籤可切換真人／電腦。</p>
+  </section>
+
+  <section id="game" hidden>
+    <div class="table" id="table">
+      <div class="felt"></div>
+      <div class="center">
+        <div class="pot" id="pot">底池 0</div>
+        <div class="board" id="board"></div>
+        <div class="status" id="status"></div>
+      </div>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="log" id="log"></div>
+  </section>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const SUITS=['♠','♥','♦','♣'], RN={11:'J',12:'Q',13:'K',14:'A',10:'10'};
+const HN=['高牌','一對','兩對','三條','順子','同花','葫蘆','四條','同花順'];
+const BOTNAMES=['阿龍','小美','老K','莎莎','阿傑','Mia','大熊','小狐','阿嬤','Leo','卡卡','阿財'];
+const rnk=r=>RN[r]||String(r);
+
+/* ---------- 設定 ---------- */
+let seats=[{name:'你',ai:false}];
+const fillSel=$('#fillTo');
+for(let i=4;i<=9;i++){const o=document.createElement('option');o.value=i;o.textContent=i+' 人';if(i==6)o.selected=true;fillSel.appendChild(o)}
+fillSel.onchange=()=>{$('#fillN').textContent=fillSel.value};
+function botName(){const used=new Set(seats.map(s=>s.name));return BOTNAMES.find(n=>!used.has(n))||('電腦'+(seats.length+1))}
+function renderSetup(){
+  const L=$('#seatlist');L.innerHTML='';
+  seats.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='seatrow';
+    d.innerHTML=`<button class="tag ${s.ai?'':'h'}">${s.ai?'電腦':'真人'}</button><input id="sn${i}" value="${s.name}" maxlength="8" aria-label="名稱"><button class="x" aria-label="移除">✕</button>`;
+    d.children[0].onclick=()=>{s.ai=!s.ai;renderSetup()};
+    d.children[1].oninput=e=>{s.name=e.target.value||('玩家'+(i+1))};
+    d.children[2].onclick=()=>{seats.splice(i,1);renderSetup()};
+    L.appendChild(d);
+  });
+  const n=seats.length, h=seats.filter(s=>!s.ai).length;
+  let msg=`目前 ${n} 人（真人 ${h}、電腦 ${n-h}）。`;
+  if(n<4)msg+=` 還差 ${4-n} 人，可按「補滿電腦」。`;
+  if(n>9)msg+=' 最多 9 人。';
+  $('#setupHint').textContent=msg;
+  $('#start').disabled=n<4||n>9;
+  $('#addHuman').disabled=$('#addBot').disabled=n>=9;
+}
+$('#addHuman').onclick=()=>{seats.push({name:'玩家'+(seats.length+1),ai:false});renderSetup()};
+$('#addBot').onclick=()=>{seats.push({name:botName(),ai:true});renderSetup()};
+$('#fillBot').onclick=()=>{const t=+fillSel.value;while(seats.length<t)seats.push({name:botName(),ai:true});renderSetup()};
+renderSetup();
+
+/* ---------- 牌力評估 ---------- */
+function eval5(c){
+  const r=c.map(x=>x.r).sort((a,b)=>b-a);
+  const flush=c.every(x=>x.s===c[0].s);
+  const cnt={};r.forEach(x=>cnt[x]=(cnt[x]||0)+1);
+  const g=Object.keys(cnt).map(Number).sort((a,b)=>cnt[b]-cnt[a]||b-a);
+  let st=0;
+  if(g.length===5){ if(r[0]-r[4]===4)st=r[0]; else if(r[0]===14&&r[1]===5)st=5; }
+  let cat,k;
+  if(st&&flush){cat=8;k=[st]}
+  else if(cnt[g[0]]===4){cat=7;k=g}
+  else if(cnt[g[0]]===3&&cnt[g[1]]===2){cat=6;k=g}
+  else if(flush){cat=5;k=r}
+  else if(st){cat=4;k=[st]}
+  else if(cnt[g[0]]===3){cat=3;k=g}
+  else if(cnt[g[0]]===2&&cnt[g[1]]===2){cat=2;k=g}
+  else if(cnt[g[0]]===2){cat=1;k=g}
+  else {cat=0;k=r}
+  let s=cat;for(let i=0;i<5;i++)s=s*15+(k[i]||0);
+  return s;
+}
+const COMB={};
+function combos(n){if(COMB[n])return COMB[n];const o=[];for(let a=0;a<n;a++)for(let b=a+1;b<n;b++)for(let c=b+1;c<n;c++)for(let d=c+1;d<n;d++)for(let e=d+1;e<n;e++)o.push([a,b,c,d,e]);return COMB[n]=o}
+function best(cards){let bs=-1,bc=null;for(const ix of combos(cards.length)){const h=ix.map(i=>cards[i]);const s=eval5(h);if(s>bs){bs=s;bc=h}}return {score:bs,cards:bc,cat:Math.floor(bs/759375)}}
+
+/* ---------- 遊戲狀態 ---------- */
+let G=null, timer=null, revealed=-1;
+function newDeck(){const d=[];for(let s=0;s<4;s++)for(let r=2;r<=14;r++)d.push({r,s});for(let i=d.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[d[i],d[j]]=[d[j],d[i]]}return d}
+const humans=()=>G.players.filter(p=>!p.ai&&!p.out);
+const canAct=p=>!p.folded&&!p.allIn&&!p.out;
+const inHand=p=>!p.folded&&!p.out;
+function nextIdx(i,pred){const n=G.players.length;for(let k=1;k<=n;k++){const j=(i+k)%n;if(pred(G.players[j]))return j}return -1}
+const potTotal=()=>G.players.reduce((a,p)=>a+p.total,0);
+function log(t){const d=document.createElement('div');d.innerHTML=t;$('#log').prepend(d)}
+
+$('#start').onclick=()=>{
+  const stack=+$('#stack').value, sb=+$('#blinds').value;
+  G={players:seats.map((s,i)=>({name:s.name.trim()||('玩家'+(i+1)),ai:s.ai,chips:stack,hole:[],bet:0,total:0,folded:false,allIn:false,out:false,acted:false,lastAct:'',aggr:.6+Math.random()*.8})),
+     dealer:-1,board:[],sb,bb:sb*2,speed:+$('#speed').value,hand:0,street:0,phase:'idle'};
+  $('#setup').hidden=true;$('#game').hidden=false;$('#log').innerHTML='';
+  $('#meta').textContent=`盲注 ${G.sb} / ${G.bb}`;
+  startHand();
+};
+
+function startHand(){
+  clearTimeout(timer);
+  G.players.forEach(p=>{if(p.chips<=0)p.out=true});
+  const alive=G.players.filter(p=>!p.out);
+  if(alive.length<2){G.phase='over';render();log(`<b>${alive[0].name}</b> 贏下整場比賽！`);return}
+  G.hand++;G.board=[];G.deck=newDeck();G.street=0;G.phase='bet';G.winners=[];revealed=-1;
+  G.players.forEach(p=>{p.hole=[];p.bet=0;p.total=0;p.folded=p.out;p.allIn=false;p.acted=false;p.lastAct='';p.result=''});
+  G.dealer=nextIdx(G.dealer<0?G.players.length-1:G.dealer,p=>!p.out);
+  let sbI,bbI;
+  if(alive.length===2){sbI=G.dealer;bbI=nextIdx(sbI,p=>!p.out)}
+  else{sbI=nextIdx(G.dealer,p=>!p.out);bbI=nextIdx(sbI,p=>!p.out)}
+  G.sbI=sbI;G.bbI=bbI;
+  pay(G.players[sbI],G.sb);G.players[sbI].lastAct='小盲';
+  pay(G.players[bbI],G.bb);G.players[bbI].lastAct='大盲';
+  G.curBet=G.bb;G.minRaise=G.bb;
+  for(let k=0;k<2;k++)G.players.forEach(p=>{if(!p.out)p.hole.push(G.deck.pop())});
+  log(`── 第 ${G.hand} 手，莊家 <b>${G.players[G.dealer].name}</b> ──`);
+  G.actor=nextIdx(bbI,canAct);
+  beginTurn();
+}
+function pay(p,amt){amt=Math.min(amt,p.chips);p.chips-=amt;p.bet+=amt;p.total+=amt;if(p.chips===0)p.allIn=true;return amt}
+
+function roundDone(){
+  const a=G.players.filter(canAct);
+  if(a.length===0)return true;
+  if(a.length===1&&a[0].bet>=G.curBet&&G.players.filter(inHand).length>1&&(a[0].acted||G.players.filter(p=>inHand(p)&&p.allIn).length>0&&a[0].bet>=maxBet()))return true;
+  return a.every(p=>p.acted&&p.bet===G.curBet);
+}
+const maxBet=()=>Math.max(...G.players.map(p=>p.bet));
+
+function beginTurn(){
+  if(G.players.filter(inHand).length===1)return winUncontested();
+  if(roundDone())return nextStreet();
+  const p=G.players[G.actor];
+  if(!p||!canAct(p)){G.actor=nextIdx(G.actor,canAct);return beginTurn()}
+  render();
+  if(p.ai)timer=setTimeout(()=>aiAct(p),G.speed);
+}
+
+function act(p,type,to){
+  const toCall=G.curBet-p.bet;
+  if(type==='fold'){p.folded=true;p.lastAct='棄牌';log(`<b>${p.name}</b> 棄牌`)}
+  else if(type==='call'){
+    if(toCall<=0){p.lastAct='過牌';log(`<b>${p.name}</b> 過牌`)}
+    else{const a=pay(p,toCall);p.lastAct=p.allIn?'全下':'跟注 '+a;log(`<b>${p.name}</b> ${p.allIn?'全下':'跟注'} ${a}`)}
+  }else{ // raise to
+    to=Math.min(to,p.bet+p.chips);
+    const inc=to-G.curBet;
+    pay(p,to-p.bet);
+    if(inc>=G.minRaise){G.minRaise=inc;G.players.forEach(q=>{if(q!==p)q.acted=false})}
+    else if(inc>0){G.players.forEach(q=>{if(q!==p&&q.bet<to)q.acted=false})}
+    const verb=G.curBet===0?'下注':'加注到';
+    G.curBet=Math.max(G.curBet,to);
+    p.lastAct=p.allIn?'全下 '+to:(verb==='下注'?'下注 ':'加注 ')+to;
+    log(`<b>${p.name}</b> ${p.allIn?'全下':verb} ${to}`);
+  }
+  p.acted=true;
+  G.actor=nextIdx(G.players.indexOf(p),canAct);
+  beginTurn();
+}
+
+function nextStreet(){
+  G.players.forEach(p=>{p.bet=0;p.acted=false;if(!p.folded&&!p.allIn&&!p.out)p.lastAct=''});
+  G.curBet=0;G.minRaise=G.bb;G.street++;
+  if(G.street===4)return showdown();
+  if(G.street===1)G.board.push(G.deck.pop(),G.deck.pop(),G.deck.pop());
+  else G.board.push(G.deck.pop());
+  log(['','翻牌','轉牌','河牌'][G.street]+'：'+G.board.map(c=>rnk(c.r)+SUITS[c.s]).join(' '));
+  if(G.players.filter(canAct).length<=1){render();timer=setTimeout(nextStreet,Math.max(600,G.speed));return}
+  G.actor=nextIdx(G.dealer,canAct);
+  beginTurn();
+}
+
+function winUncontested(){
+  const w=G.players.find(inHand), pot=potTotal();
+  w.chips+=pot;w.result='+'+pot;G.winners=[w];G.phase='done';
+  log(`<b>${w.name}</b> 贏得底池 ${pot}（其他人棄牌）`);
+  G.players.forEach(p=>{p.bet=0;p.total=0});
+  G.lastPot=pot;render();
+}
+
+function showdown(){
+  G.phase='done';
+  const live=G.players.filter(inHand);
+  live.forEach(p=>p.best=best(p.hole.concat(G.board)));
+  const levels=[...new Set(G.players.map(p=>p.total).filter(x=>x>0))].sort((a,b)=>a-b);
+  let prev=0;const won=new Map();G.winners=[];
+  levels.forEach(lv=>{
+    let amt=0;G.players.forEach(p=>amt+=Math.max(0,Math.min(p.total,lv)-prev));
+    const elig=live.filter(p=>p.total>=lv);prev=lv;
+    if(!amt)return;
+    if(!elig.length){ // 只剩棄牌者的多餘下注，退回
+      G.players.filter(p=>p.total>=lv).forEach(p=>p.chips+=amt);return}
+    const top=Math.max(...elig.map(p=>p.best.score));
+    const ws=elig.filter(p=>p.best.score===top);
+    const share=Math.floor(amt/ws.length);let rem=amt-share*ws.length;
+    // 餘數給莊家左手邊最近的贏家
+    const order=[];let i=G.dealer;for(let k=0;k<G.players.length;k++){i=(i+1)%G.players.length;if(ws.includes(G.players[i]))order.push(G.players[i])}
+    order.forEach(p=>{const g=share+(rem>0?1:0);if(rem>0)rem--;p.chips+=g;won.set(p,(won.get(p)||0)+g)});
+  });
+  G.lastPot=potTotal();
+  live.forEach(p=>{p.lastAct=HN[p.best.cat]});
+  won.forEach((v,p)=>{p.result='+'+v;G.winners.push(p);log(`<b>${p.name}</b> 以 ${HN[p.best.cat]} 贏得 ${v}`)});
+  G.players.forEach(p=>{p.bet=0;p.total=0});
+  render();
+}
+
+/* ---------- 電腦 AI ---------- */
+function equity(p,iters){
+  const opp=Math.min(G.players.filter(q=>inHand(q)&&q!==p).length,5);
+  if(opp===0)return 1;
+  const known=p.hole.concat(G.board);
+  const used=new Set(known.map(c=>c.r*4+c.s));
+  const pool=[];for(let s=0;s<4;s++)for(let r=2;r<=14;r++)if(!used.has(r*4+s))pool.push({r,s});
+  let win=0;
+  for(let t=0;t<iters;t++){
+    for(let i=pool.length-1;i>pool.length-1-(opp*2+5-G.board.length)&&i>0;i--){const j=Math.random()*(i+1)|0;[pool[i],pool[j]]=[pool[j],pool[i]]}
+    let k=pool.length-1;
+    const board=G.board.slice();while(board.length<5)board.push(pool[k--]);
+    const me=best(p.hole.concat(board)).score;
+    let beat=true,tie=0;
+    for(let o=0;o<opp;o++){const s=best([pool[k--],pool[k--]].concat(board)).score;if(s>me){beat=false;break}if(s===me)tie++}
+    if(beat)win+=tie?1/(tie+1):1;
+  }
+  return win/iters;
+}
+function aiAct(p){
+  const toCall=G.curBet-p.bet, pot=potTotal();
+  const eq=equity(p,G.board.length?220:160);
+  const opp=G.players.filter(q=>inHand(q)&&q!==p).length;
+  const fair=1/(opp+1); // 平均勝率基準
+  const strength=eq/fair; // >1 代表優於平均
+  const odds=toCall/(pot+toCall);
+  const r=Math.random(), ag=p.aggr;
+  const raiseTo=frac=>{let size=Math.max(G.minRaise,Math.round(pot*frac/G.bb)*G.bb);return Math.min(G.curBet+size,p.bet+p.chips)};
+  if(strength>1.9*(1.1-ag*0.15)&&eq>0.45&&r<0.85){
+    if(p.chips<=toCall)return act(p,'call');
+    return act(p,'raise',raiseTo(0.5+r*0.6*ag));
+  }
+  if(toCall===0){
+    if(strength>1.3&&r<0.45*ag)return act(p,'raise',raiseTo(0.5));
+    if(r<0.06*ag)return act(p,'raise',raiseTo(0.4)); // 偷雞
+    return act(p,'call');
+  }
+  if(eq>odds*1.1||(toCall<=G.bb&&eq>odds*0.7)||(r<0.04*ag&&toCall<pot*0.4))return act(p,'call');
+  return act(p,'fold');
+}
+
+/* ---------- 畫面 ---------- */
+function cardEl(c,cls=''){
+  const d=document.createElement('div');
+  if(!c){d.className='card back '+cls;return d}
+  d.className='card '+(c.s===1||c.s===2?'r ':'')+cls;
+  d.innerHTML=`<span>${rnk(c.r)}</span><span class="s">${SUITS[c.s]}</span>`;return d;
+}
+function canSee(p){
+  if(p.out)return false;
+  if(G.phase==='done'&&!p.folded&&G.players.filter(inHand).length>1)return true;
+  if(p.ai)return false;
+  const hs=humans();
+  if(hs.length<=1)return true;
+  return revealed===G.players.indexOf(p);
+}
+function render(){
+  const T=$('#table');T.querySelectorAll('.seat,.bet,.reveal').forEach(e=>e.remove());
+  const n=G.players.length, narrow=innerWidth<=640;
+  const first=Math.max(0,G.players.findIndex(p=>!p.ai));
+  const winCards=new Set();(G.winners||[]).forEach(w=>w.best&&w.best.cards.forEach(c=>winCards.add(c)));
+  G.players.forEach((p,i)=>{
+    const ang=Math.PI/2+((i-first+n)%n)*2*Math.PI/n;
+    const rx=narrow?40:44, ry=narrow?43:42;
+    const x=50+rx*Math.cos(ang), y=50+ry*Math.sin(ang);
+    const s=document.createElement('div');
+    s.className='seat'+(G.phase==='bet'&&G.actor===i?' turn':'')+(p.folded&&!p.out?' fold':'')+(p.out?' out':'')+((G.winners||[]).includes(p)?' win':'');
+    s.style.left=x+'%';s.style.top=y+'%';
+    const cw=document.createElement('div');cw.className='cards';
+    if(!p.out&&p.hole.length&&!(p.folded&&p.ai))p.hole.forEach(c=>cw.appendChild(canSee(p)?cardEl(c,winCards.has(c)?'hi':''):cardEl(null)));
+    s.appendChild(cw);
+    const pl=document.createElement('div');pl.className='plate';pl.style.position='relative';
+    pl.innerHTML=`<div class="nm">${p.name}${p.ai?'':' ●'}</div><div class="ch">${p.out?'出局':p.chips}</div><div class="lb">${p.result||p.lastAct||''}</div>`;
+    if(i===G.dealer){const d=document.createElement('div');d.className='btn-d';d.textContent='D';pl.appendChild(d)}
+    s.appendChild(pl);T.appendChild(s);
+    if(p.bet>0){const b=document.createElement('div');b.className='bet';b.textContent=p.bet;
+      b.style.left=(50+rx*0.62*Math.cos(ang))+'%';b.style.top=(50+ry*0.6*Math.sin(ang))+'%';T.appendChild(b)}
+  });
+  const B=$('#board');B.innerHTML='';
+  for(let i=0;i<5;i++)B.appendChild(G.board[i]?cardEl(G.board[i],winCards.has(G.board[i])?'hi':''):(()=>{const e=document.createElement('div');e.className='card empty';return e})());
+  $('#pot').textContent='底池 '+(G.phase==='done'?G.lastPot:potTotal());
+  const st=$('#status'), actor=G.players[G.actor];
+  if(G.phase==='over')st.textContent='比賽結束';
+  else if(G.phase==='done')st.textContent=(G.winners||[]).map(w=>w.name+' '+w.result).join('、');
+  else st.textContent=actor?`輪到 ${actor.name}`+(actor.ai?' 思考中…':''):'';
+  // 多位真人：看牌遮罩
+  if(G.phase==='bet'&&actor&&!actor.ai&&humans().length>1&&revealed!==G.actor){
+    const rv=document.createElement('div');rv.className='reveal';
+    const b=document.createElement('button');b.className='gold';b.textContent=`輪到 ${actor.name}：點此看牌`;
+    b.onclick=()=>{revealed=G.actor;render()};rv.appendChild(b);T.appendChild(rv);
+  }
+  renderBar();
+}
+function renderBar(){
+  const bar=$('#bar');bar.innerHTML='';
+  const p=G.players[G.actor];
+  if(G.phase==='done'||G.phase==='over'){
+    const r=document.createElement('div');r.className='acts';
+    if(G.phase==='done'){const b=document.createElement('button');b.className='gold';b.textContent='下一手';b.onclick=startHand;r.appendChild(b)}
+    const q=document.createElement('button');q.textContent='回到設定';q.onclick=()=>{clearTimeout(timer);$('#game').hidden=true;$('#setup').hidden=false;renderSetup()};r.appendChild(q);
+    bar.appendChild(r);return;
+  }
+  if(!p||p.ai||(humans().length>1&&revealed!==G.actor)){bar.innerHTML=`<div class="hint">${p?'等待 '+p.name+' 行動…':''}</div>`;return}
+  const toCall=G.curBet-p.bet, pot=potTotal(), maxTo=p.bet+p.chips;
+  const minTo=Math.min(G.curBet+G.minRaise,maxTo);
+  const acts=document.createElement('div');acts.className='acts';
+  const mk=(t,c,f)=>{const b=document.createElement('button');b.textContent=t;if(c)b.className=c;b.onclick=f;acts.appendChild(b);return b};
+  mk('棄牌','red',()=>act(p,'fold'));
+  mk(toCall>0?`跟注 ${Math.min(toCall,p.chips)}`:'過牌','',()=>act(p,'call'));
+  const canRaise=p.chips>toCall;
+  const rb=mk('','gold',()=>act(p,'raise',+rng.value));
+  const ai=mk(`全下 ${maxTo}`,'',()=>maxTo<=G.curBet?act(p,'call'):act(p,'raise',maxTo));
+  const rw=document.createElement('div');rw.className='raise';
+  const rng=document.createElement('input');rng.type='range';rng.id='raiseAmt';rng.min=minTo;rng.max=maxTo;rng.step=Math.min(G.sb,1)*G.sb>0?G.sb:1;rng.value=minTo;
+  const amt=document.createElement('span');amt.className='amt';
+  const upd=()=>{amt.textContent=rng.value;rb.textContent=(G.curBet===0?'下注 ':'加注到 ')+rng.value};
+  rng.oninput=upd;upd();
+  const qk=document.createElement('div');qk.className='quick';
+  [['½池',.5],['¾池',.75],['1池',1]].forEach(([t,f])=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{rng.value=Math.max(minTo,Math.min(maxTo,G.curBet+Math.round((pot+toCall)*f)));upd()};qk.appendChild(b)});
+  rw.append(rng,amt,qk);
+  if(!canRaise){rb.disabled=true;rng.disabled=true}
+  if(p.chips<=toCall)ai.disabled=true;
+  bar.append(acts);if(canRaise)bar.append(rw);
+  if(G.board.length){const h=best(p.hole.concat(G.board));const d=document.createElement('div');d.className='hint';d.textContent='你目前的牌型：'+HN[h.cat];bar.append(d)}
+}
+addEventListener('resize',()=>{if(G&&!$('#game').hidden)render()});
+})();
+</script>
+
+</body></html>
