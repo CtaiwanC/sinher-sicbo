@@ -1,0 +1,226 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>鑫河麻將</title>
+<style>
+:root{--gold:#e8c66a;--ivory:#f6ecd8;--muted:#b9cfc4;--w:min(5.6vw,40px);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 35%,#1b6f50,#0a2c20 75%) fixed,#0a2c20;color:var(--ivory);font-family:"PingFang TC","Noto Sans TC",system-ui,sans-serif;padding:8px max(10px,env(safe-area-inset-left,0px)) 16px}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:8px}
+header{display:flex;align-items:center;gap:10px}
+header a{color:var(--gold);text-decoration:none;font-size:1.6rem;line-height:1}
+h1{margin:0;font-size:1.25rem;color:var(--gold);letter-spacing:.12em}
+#info{margin-left:auto;font-size:.85rem;color:var(--muted)}
+.opps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.opp,.me,.pool{background:rgba(0,0,0,.22);border:1px solid rgba(232,198,106,.25);border-radius:10px;padding:6px 8px}
+.opp.on,.me.on{border-color:var(--gold);box-shadow:0 0 12px rgba(232,198,106,.45)}
+.nm{font-size:.85rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.nm b{background:#c62828;color:#fff;border-radius:4px;padding:0 4px;font-size:.7rem}
+.nm .sc{margin-left:auto;color:var(--gold);font-variant-numeric:tabular-nums}
+.cnt{font-size:.75rem;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:1px;min-height:4px}
+.meld{display:inline-flex;margin-right:5px}
+.pools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pool .lb{font-size:.75rem;color:var(--muted);margin-bottom:2px}
+.pool .row{min-height:calc(min(4vw,24px)*1.36)}
+#msg{text-align:center;font-size:.9rem;min-height:1.3em;color:var(--gold)}
+.t{--h:calc(var(--w)*1.36);width:var(--w);height:var(--h);background:linear-gradient(#fffdf6,#ece2c6);border-radius:calc(var(--w)*.12);border-bottom:calc(var(--w)*.08) solid #b6a273;color:#222;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:calc(var(--w)*.44);line-height:1.02;box-shadow:0 1px 2px rgba(0,0,0,.5);user-select:none;flex:none}
+.t small{font-size:calc(var(--w)*.34);font-weight:700}
+.t.m{color:#c62828}.t.p{color:#1565c0}.t.s{color:#2e7d32}.t.zr{color:#c62828}.t.zg{color:#2e7d32}.t.f{color:#ad1457}
+.t.back{background:linear-gradient(#2f8a64,#1a5c41);border-bottom-color:#0d3526}
+.t.sm{--w:min(3.8vw,26px)}
+.t.xs{--w:min(4vw,24px)}
+.t.last{outline:3px solid #ffd54f;outline-offset:-1px}
+#hand{gap:2px;margin-top:4px}
+#hand .t{cursor:pointer;transition:transform .1s}
+#hand.can .t:hover{transform:translateY(-6px)}
+#hand .t.new{margin-left:calc(var(--w)*.35)}
+#acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;min-height:38px}
+#acts button,.btn{background:#c62828;color:#fff;border:0;border-radius:8px;padding:8px 18px;font-size:1rem;font-weight:700;cursor:pointer}
+#acts button.pass{background:#455a64}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;place-items:center;padding:16px;z-index:9}
+#modal .box{background:#13432f;border:2px solid var(--gold);border-radius:14px;padding:18px;max-width:560px;width:100%;display:grid;gap:10px;max-height:90vh;overflow:auto}
+#modal h2{margin:0;color:var(--gold);text-align:center}
+#modal ul{margin:0;padding-left:20px;line-height:1.6}
+</style></head><body>
+<div class="wrap">
+  <header><a href="/" aria-label="回大廳">‹</a><h1>鑫河麻將</h1><span id="info"></span></header>
+  <section class="opps"><div class="opp" id="s3"></div><div class="opp" id="s2"></div><div class="opp" id="s1"></div></section>
+  <section class="pools"><div class="pool"><div class="lb" id="l2"></div><div class="row" id="d2"></div></div><div class="pool"><div class="lb" id="l1"></div><div class="row" id="d1"></div></div>
+    <div class="pool"><div class="lb" id="l3"></div><div class="row" id="d3"></div></div><div class="pool"><div class="lb" id="l0"></div><div class="row" id="d0"></div></div></section>
+  <div id="msg"></div>
+  <section class="me" id="s0"><div class="nm" id="n0"></div><div class="row" id="m0"></div><div class="row" id="hand"></div></section>
+  <div id="acts"></div>
+</div>
+<div id="modal"><div class="box" id="mbox"></div></div>
+<script>
+// 台灣十六張麻將：你 + 3 位電腦。逆時針順序 你→下家(右)→對家→上家(左)
+const $=id=>document.getElementById(id), sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const NUM=["一","二","三","四","五","六","七","八","九"],SU=["萬","筒","條"],ZI=["東","南","西","北","中","發","白"],FL=["春","夏","秋","冬","梅","蘭","竹","菊"],WIND=["東","南","西","北"];
+const NAMES=["你","阿龍","小美","老K"], POS=["你","下家","對家","上家"];
+const BASE=300, PER=100, KEEP=16;
+const tname=t=>t<27?NUM[t%9]+SU[t/9|0]:t<34?ZI[t-27]:FL[t-34];
+function tile(t,cls=""){
+  if(t===99)return `<span class="t back ${cls}"></span>`;
+  let a,b="",c="";
+  if(t<27){a=NUM[t%9];b=SU[t/9|0];c="mps"[t/9|0]}else if(t<34){a=ZI[t-27];c=t===31?"zr":t===32?"zg":""}else{a=FL[t-34];c="f"}
+  return `<span class="t ${c} ${cls}" data-t="${t}">${a}${b?"<small>"+b+"</small>":""}</span>`;
+}
+const counts=a=>{const c=Array(34).fill(0);a.forEach(t=>c[t]++);return c};
+function sets(c,mode){const i=c.findIndex(x=>x>0);if(i<0)return true;
+  if(mode!=="c"&&c[i]>=3){c[i]-=3;const ok=sets(c,mode);c[i]+=3;if(ok)return true}
+  if(mode!=="p"&&i<27&&i%9<=6&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;const ok=sets(c,mode);c[i]++;c[i+1]++;c[i+2]++;if(ok)return true}
+  return false}
+function decomp(c,mode){if(c.reduce((a,b)=>a+b,0)%3!==2)return false;for(let i=0;i<34;i++)if(c[i]>=2){c[i]-=2;const ok=sets(c,mode);c[i]+=2;if(ok)return true}return false}
+const isWin=c=>decomp(c);
+
+let scores=[0,0,0,0];try{const s=JSON.parse(localStorage.getItem("xh-mj-scores"));if(Array.isArray(s)&&s.length===4)scores=s}catch{}
+const save=()=>{try{localStorage.setItem("xh-mj-scores",JSON.stringify(scores))}catch{}};
+let P=[],wall=[],dealer=0,roundWind=0,passes=0,turn=-1,last=null,resolver=null,myTurn=null;
+const seatWind=i=>(i-dealer+4)%4;
+const msg=t=>$("msg").textContent=t;
+
+function newWall(){const w=[];for(let t=0;t<34;t++)for(let k=0;k<4;k++)w.push(t);for(let f=34;f<42;f++)w.push(f);
+  for(let i=w.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[w[i],w[j]]=[w[j],w[i]]}return w}
+function draw(p,tail){let t=tail?wall.pop():wall.shift();while(t>=34){p.flowers.push(t);msg(p.name+" 補花 "+tname(t));t=wall.pop()}p.hand.push(t);return t}
+function removeN(arr,t,n){for(let k=0;k<n;k++)arr.splice(arr.indexOf(t),1)}
+
+// ---------- 畫面 ----------
+const meldHTML=m=>`<span class="meld">${m.t.map(x=>tile(m.k==="ankong"?99:x,"sm")).join("")}</span>`;
+function nameLine(i){const p=P[i];return `${WIND[seatWind(i)]}・${p.name}${i===dealer?" <b>莊</b>":""}<span class="sc">${scores[i].toLocaleString()}</span>`}
+function render(){
+  $("info").textContent=`${WIND[roundWind]}風圈・剩 ${Math.max(0,wall.length-KEEP)} 張`;
+  for(const i of [1,2,3]){const p=P[i];const el=$("s"+i);el.className="opp"+(turn===i?" on":"");
+    el.innerHTML=`<div class="nm">${nameLine(i)}</div><div class="cnt">${POS[i]}・手牌 ${p.hand.length} 張</div><div class="row">${p.flowers.map(f=>tile(f,"sm")).join("")}${p.melds.map(meldHTML).join("")}</div>`}
+  for(let i=0;i<4;i++){$("l"+i).textContent=(i?P[i].name:"你")+" 打出";
+    $("d"+i).innerHTML=P[i].discards.map((t,k)=>tile(t,"xs"+(last&&last.p===i&&k===P[i].discards.length-1?" last":""))).join("")}
+  const me=P[0];$("s0").className="me"+(turn===0?" on":"");$("n0").innerHTML=nameLine(0);
+  $("m0").innerHTML=me.flowers.map(f=>tile(f,"sm")).join("")+me.melds.map(meldHTML).join("");
+  let h=me.hand.slice(),nw=null;if(myTurn&&myTurn.drawn!=null){h.splice(h.indexOf(myTurn.drawn),1);nw=myTurn.drawn}
+  h.sort((a,b)=>a-b);$("hand").className="row"+(myTurn?" can":"");
+  $("hand").innerHTML=h.map(t=>tile(t)).join("")+(nw!=null?tile(nw,"new"):"");
+}
+$("hand").addEventListener("click",e=>{const el=e.target.closest(".t");if(!el||!myTurn)return;done({type:"discard",tile:+el.dataset.t})});
+function showActs(list){const a=$("acts");a.innerHTML="";list.forEach(o=>{const b=document.createElement("button");b.textContent=o.label;if(o.pass)b.className="pass";b.onclick=o.fn;a.append(b)})}
+function done(v){const r=resolver;resolver=null;myTurn=null;showActs([]);render();if(r)r(v)}
+
+// ---------- 電腦 ----------
+function botDiscard(i){const p=P[i],c=counts(p.hand);let best=p.hand[0],bv=1e9;
+  for(const t of new Set(p.hand)){let v=c[t]*4;
+    if(t<27){const n=t%9,g=d=>(n+d>=0&&n+d<=8)?c[t+d]:0;v+=(g(-1)+g(1))*3+(g(-2)+g(2))*1.5;if(n===0||n===8)v-=.6}
+    else if(t>=31||t-27===roundWind||t-27===seatWind(i))v+=.8;
+    v+=Math.random()*.3;if(v<bv){bv=v;best=t}}
+  return best}
+function botClaim(i,t,opts){
+  const w=opts.find(o=>o.type==="win");if(w)return w;
+  const k=opts.find(o=>o.type==="kong");if(k&&Math.random()<.6)return k;
+  const p=opts.find(o=>o.type==="pong");if(p&&(t>=27||Math.random()<.45))return p;
+  const ch=opts.filter(o=>o.type==="chi");if(ch.length&&Math.random()<.3)return ch[0];
+  return null}
+
+// ---------- 自己回合（摸牌後）----------
+async function selfTurn(i,drawn,didDraw,kongDraw){
+  const p=P[i],c=counts(p.hand),canZimo=didDraw&&isWin(c),kongs=[];
+  if(didDraw&&wall.length>KEEP){for(let t=0;t<34;t++)if(c[t]===4)kongs.push({t,an:true});
+    p.melds.forEach(m=>{if(m.k==="pong"&&c[m.t[0]])kongs.push({t:m.t[0],add:true})})}
+  let r;
+  if(p.bot){await sleep(650);
+    if(canZimo)r={type:"win"};else if(kongs.length&&Math.random()<.8)r={type:"kong",...kongs[0]};else r={type:"discard",tile:botDiscard(i)}}
+  else{const opts=[];if(canZimo)opts.push({label:"自摸",fn:()=>done({type:"win"})});
+    kongs.forEach(k=>opts.push({label:"槓 "+tname(k.t),fn:()=>done({type:"kong",...k})}));
+    msg(canZimo?"可以自摸！":"輪到你打牌，點一張牌打出");
+    r=await new Promise(res=>{resolver=res;myTurn={drawn:didDraw?drawn:null};showActs(opts);render()})}
+  if(r.type==="kong"){if(r.an){removeN(p.hand,r.t,4);p.melds.push({k:"ankong",t:[r.t,r.t,r.t,r.t]});msg(p.name+" 暗槓")}
+    else{removeN(p.hand,r.t,1);const m=p.melds.find(m=>m.k==="pong"&&m.t[0]===r.t);m.k="kong";m.t.push(r.t);msg(p.name+" 加槓 "+tname(r.t))}}
+  r.kongDraw=kongDraw;return r}
+
+// ---------- 別人打牌後：胡 > 碰/槓 > 吃 ----------
+async function claims(from,t){
+  const dec=[];
+  for(let k=1;k<4;k++){const i=(from+k)%4,c=counts(P[i].hand),o=[];
+    c[t]++;if(isWin(c))o.push({type:"win"});c[t]--;
+    if(wall.length>KEEP){if(c[t]>=2)o.push({type:"pong"});if(c[t]===3)o.push({type:"kong"});
+      if(k===1&&t<27){const n=t%9;[[-2,-1],[-1,1],[1,2]].forEach(([a,b])=>{if(n+a>=0&&n+b<=8&&c[t+a]&&c[t+b])o.push({type:"chi",use:[t+a,t+b]})})}}
+    if(!o.length)continue;
+    let d;
+    if(P[i].bot)d=botClaim(i,t,o);
+    else{msg(`${P[from].name} 打出 ${tname(t)}，要不要？`);
+      d=await new Promise(res=>{resolver=res;showActs([...o.map(x=>({label:x.type==="win"?"胡":x.type==="pong"?"碰":x.type==="kong"?"槓":"吃 "+[x.use[0],t,x.use[1]].sort((a,b)=>a-b).map(tname).join(""),fn:()=>done(x)})),{label:"過",pass:true,fn:()=>done(null)}])})}
+    if(d)dec.push({...d,p:i,order:k})}
+  const pr={win:3,kong:2,pong:2,chi:1};
+  dec.sort((a,b)=>pr[b.type]-pr[a.type]||a.order-b.order);
+  return dec[0]||null}
+
+// ---------- 一局 ----------
+async function playHand(){
+  wall=newWall();last=null;
+  P=NAMES.map((n,i)=>({name:n,bot:i>0,hand:[],melds:[],flowers:[],discards:[]}));
+  for(let r=0;r<16;r++)for(let k=0;k<4;k++)P[(dealer+k)%4].hand.push(wall.shift());
+  for(let k=0;k<4;k++){const p=P[(dealer+k)%4];let j;while((j=p.hand.findIndex(t=>t>=34))>=0){p.flowers.push(p.hand.splice(j,1)[0]);p.hand.push(wall.pop())}}
+  let cur=dealer,mode="draw",kongDraw=false;
+  while(true){
+    turn=cur;let drawn=null;
+    if(mode==="draw"){if(wall.length<=KEEP)return finish(null);drawn=draw(P[cur],kongDraw)}
+    render();
+    const r=await selfTurn(cur,drawn,mode==="draw",kongDraw);kongDraw=false;
+    if(r.type==="win")return finish({w:cur,from:-1,t:drawn,kongDraw:r.kongDraw});
+    if(r.type==="kong"){mode="draw";kongDraw=true;continue}
+    const t=r.tile,p=P[cur];removeN(p.hand,t,1);p.discards.push(t);last={p:cur,t};msg(`${p.name} 打出 ${tname(t)}`);render();
+    await sleep(p.bot?450:200);
+    const c=await claims(cur,t);
+    if(c){
+      if(c.type==="win")return finish({w:c.p,from:cur,t});
+      p.discards.pop();last=null;const q=P[c.p];
+      if(c.type==="pong"){removeN(q.hand,t,2);q.melds.push({k:"pong",t:[t,t,t]});msg(q.name+" 碰 "+tname(t));mode="claim"}
+      else if(c.type==="kong"){removeN(q.hand,t,3);q.melds.push({k:"kong",t:[t,t,t,t]});msg(q.name+" 槓 "+tname(t));mode="draw";kongDraw=true}
+      else{removeN(q.hand,c.use[0],1);removeN(q.hand,c.use[1],1);q.melds.push({k:"chi",t:[c.use[0],t,c.use[1]].sort((a,b)=>a-b)});msg(q.name+" 吃 "+tname(t));mode="claim"}
+      cur=c.p;render();await sleep(400);continue}
+    cur=(cur+1)%4;mode="draw"}
+}
+
+// ---------- 算台 ----------
+function scoreHand(i,t,zimo,kongDraw){
+  const p=P[i],full=p.hand.slice();if(!zimo)full.push(t);
+  const c=counts(full),L=[],add=(n,v)=>L.push([n,v]);
+  const open=p.melds.filter(m=>m.k!=="ankong"),menq=!open.length,sw=seatWind(i);
+  if(i===dealer)add("莊家",1);
+  if(menq&&zimo)add("門清自摸",3);else{if(menq)add("門清",1);if(zimo)add("自摸",1)}
+  const fs=p.flowers;
+  if([34,35,36,37].every(f=>fs.includes(f)))add("春夏秋冬",2);else if(fs.includes(34+sw))add("正花 "+FL[sw],1);
+  if([38,39,40,41].every(f=>fs.includes(f)))add("梅蘭竹菊",2);else if(fs.includes(38+sw))add("正花 "+FL[4+sw],1);
+  const mp=Array(34).fill(false);p.melds.forEach(m=>{if(m.k!=="chi")mp[m.t[0]]=true});
+  const pung=h=>mp[h]||c[h]>=3,pair=h=>c[h]===2;
+  const dr=[31,32,33].filter(pung).length;
+  if(dr===3)add("大三元",8);else if(dr===2&&[31,32,33].some(pair))add("小三元",4);else [31,32,33].forEach(h=>{if(pung(h))add(ZI[h-27]+"刻",1)});
+  const wd=[27,28,29,30].filter(pung).length;
+  if(wd===4)add("大四喜",16);else if(wd===3&&[27,28,29,30].some(pair))add("小四喜",8);
+  else{if(pung(27+roundWind))add("圈風 "+WIND[roundWind],1);if(pung(27+sw))add("門風 "+WIND[sw],1)}
+  const all=full.concat(...p.melds.map(m=>m.t)),suits=new Set(all.filter(x=>x<27).map(x=>x/9|0)),hasZ=all.some(x=>x>=27);
+  if(!suits.size)add("字一色",16);else if(suits.size===1)hasZ?add("混一色",4):add("清一色",8);
+  if(p.melds.every(m=>m.k!=="chi")&&decomp(c.slice(),"p"))add("碰碰胡",4);
+  if(!zimo&&!fs.length&&!hasZ&&p.melds.every(m=>m.k==="chi")&&decomp(c.slice(),"c"))add("平胡",2);
+  if(!zimo&&open.length===5)add("全求人",2);
+  if(kongDraw)add("槓上開花",1);
+  if(wall.length<=KEEP)add(zimo?"海底撈月":"河底撈魚",1);
+  return L}
+
+function finish(res){
+  turn=-1;myTurn=null;showActs([]);render();
+  let html;
+  if(!res){html=`<h2>流局</h2><p style="text-align:center">牌摸完了，莊家連莊。</p>`;}
+  else{const{w,from,t,kongDraw}=res,zimo=from<0,L=scoreHand(w,t,zimo,kongDraw),tai=L.reduce((a,x)=>a+x[1],0),pay=[];
+    const payers=zimo?[1,2,3].map(k=>(w+k)%4):[from];
+    payers.forEach(j=>{const extra=(j===dealer&&w!==dealer)?1:0,amt=BASE+PER*(tai+extra);scores[j]-=amt;scores[w]+=amt;pay.push(`${P[j].name} 付 ${amt.toLocaleString()}${extra?"（含莊家 1 台）":""}`)});
+    save();const p=P[w],hand=p.hand.slice();if(zimo)hand.splice(hand.indexOf(t),1);hand.sort((a,b)=>a-b);
+    html=`<h2>${p.name} ${zimo?"自摸":"胡牌"}！${tai} 台</h2>
+      <div class="row">${p.flowers.map(f=>tile(f,"sm")).join("")}${p.melds.map(meldHTML).join("")}</div>
+      <div class="row">${hand.map(x=>tile(x,"sm")).join("")}<span style="width:8px"></span>${tile(t,"sm last")}</div>
+      ${zimo?"":`<p style="margin:0">${P[from].name} 放槍 ${tname(t)}</p>`}
+      <ul>${L.map(([n,v])=>`<li>${n}　${v} 台</li>`).join("")}</ul>
+      <p style="margin:0">底 ${BASE}・每台 ${PER}：${pay.join("，")}</p>`;
+    if(w!==dealer){dealer=(dealer+1)%4;passes++;if(passes%4===0)roundWind=(roundWind+1)%4}}
+  $("mbox").innerHTML=html+`<button class="btn" id="next">下一局</button><button class="btn" id="reset" style="background:#455a64">分數歸零</button>`;
+  $("modal").style.display="grid";
+  $("next").onclick=()=>{$("modal").style.display="none";playHand()};
+  $("reset").onclick=()=>{scores=[0,0,0,0];save();$("modal").style.display="none";playHand()};
+}
+playHand();
+</script></body></html>
